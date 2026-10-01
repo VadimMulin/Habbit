@@ -160,16 +160,65 @@
   .edit { flex: none; height: 38px; padding: 0 16px; border: 0; border-radius: 19px; background: #fff; font-size: 15px; font-weight: 700; }
   .secondary { width: 100%; height: 50px; margin-top: 8px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--muted); }
 
+  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .more { flex: none; width: 44px; height: 44px; margin-top: 2px; border: 0; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+
+  .goal { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .goal-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .goal-bar i { display: block; height: 100%; border-radius: 4px; background: var(--c); }
+  .goal-txt { flex: none; font-weight: 700; }
+  .goal-done { color: var(--text); font-weight: 700; }
+
+  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .chip { height: 44px; border: 2px solid var(--line); border-radius: 12px; background: #fff; font-size: 15px; font-weight: 700; }
+  .chip-sel { border-color: var(--text); background: var(--text); color: #fff; }
+
+  .heat-wrap { overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .heat-months { display: grid; grid-template-columns: repeat(53, 12px); column-gap: 3px; height: 16px; width: max-content; font-size: 11px; color: var(--muted); }
+  .heat-months span { grid-row: 1; white-space: nowrap; }
+  .heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 12px); grid-auto-columns: 12px; gap: 3px; width: max-content; }
+  .hc { width: 12px; height: 12px; border-radius: 3px; background: var(--c); opacity: var(--o, 1); }
+  .hc-0 { background: var(--line); opacity: 1; }
+  .hc-gap { background: none; }
+  .heat-cap { min-height: 20px; margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+
+  .awards-list { list-style: none; margin: 0; padding: 0; }
+  .awards-list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1.5px solid var(--line); line-height: 1.35; }
+  .trophy { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--c); display: grid; place-items: center; font-size: 20px; }
+  .award-sub { font-size: 13px; color: var(--muted); }
+
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .outline { display: grid; place-items: center; width: 100%; height: 48px; border: 2px solid var(--text); border-radius: 24px; background: transparent; color: var(--text); font-size: 16px; font-weight: 700; }
+  .area { height: auto; margin: 8px 0; padding: 12px 16px; resize: none; line-height: 1.4; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .file-btn { margin-top: 8px; }
+
+  .confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+  .toast {
+    position: fixed; left: 20px; right: 20px; top: calc(env(safe-area-inset-top) + 12px);
+    max-width: 480px; margin: 0 auto; padding: 14px 16px; border-radius: 16px;
+    background: var(--text); color: #fff; font-size: 15px; font-weight: 700; text-align: center; line-height: 1.35;
+    opacity: 0; transform: translateY(-14px); transition: opacity .25s, transform .25s; pointer-events: none; z-index: 60;
+  }
+  .toast-show { opacity: 1; transform: none; }
+
   @media (prefers-reduced-motion: reduce) {
-    .sheet, .backdrop, .mark::before, .mark svg { transition: none; }
+    .sheet, .backdrop, .mark::before, .mark svg, .toast { transition: none; }
     .mark-pop { animation: none; }
   }
 </style>
 </head>
 <body>
 <main class="app">
-  <h1 class="date" id="date"></h1>
-  <p class="summary" id="summary"></p>
+  <header class="top">
+    <div>
+      <h1 class="date" id="date"></h1>
+      <p class="summary" id="summary"></p>
+    </div>
+    <button class="more" data-act="more" aria-label="Награды и копия данных">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    </button>
+  </header>
   <div class="week-bar" id="weekbar"></div>
   <div class="list" id="list"></div>
 </main>
@@ -178,6 +227,8 @@
 
 <div class="backdrop" id="backdrop" data-act="close"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 (function () {
@@ -272,7 +323,7 @@
         '<div class="habit-head">' +
         '<button class="habit-name" data-open="' + h.id + '">' + esc(h.name) + '</button>' +
         '<span class="streak' + (s ? ' streak-on' : '') + '">🔥 ' + s + ' дн.</span>' +
-        '</div><div class="week">' + marks + '</div></section>';
+        '</div><div class="week">' + marks + '</div>' + goalHtml(h) + '</section>';
     };
     var groups = [['good', 'Полезные привычки'], ['quit', 'Отказаться']];
     $('#list').innerHTML = groups.map(function (g) {
@@ -286,6 +337,7 @@
     var h = habits.find(function (x) { return x.id === id; });
     if (!h) return;
     if (h.done[key]) delete h.done[key]; else h.done[key] = 1;
+    if (h.done[key]) checkGoal(h);
     save();
     render();
     if (state && state.type === 'detail' && state.id === id) renderSheet();
@@ -325,8 +377,19 @@
           return '<button class="swatch' + (i === state.color ? ' swatch-sel' : '') + '" style="' + style(p) + '" data-swatch="' + i + '" role="radio" aria-checked="' + (i === state.color) + '" aria-label="Цвет ' + (i + 1) + '">' + CHECK + '</button>';
         }).join('') +
         '</div>' +
+        (function () {
+          var list = [0, 7, 21, 30, 66, 100];
+          if (state.goal && list.indexOf(state.goal) < 0) { list.push(state.goal); list.sort(function (a, b) { return a - b; }); }
+          return '<span class="label">Цель</span>' +
+            '<div class="chips" role="radiogroup" aria-label="Цель в днях подряд">' + list.map(function (n) {
+              return '<button class="chip' + (state.goal === n ? ' chip-sel' : '') + '" data-goal="' + n + '" role="radio" aria-checked="' + (state.goal === n) + '">' + (n ? n + ' дн.' : 'Без цели') + '</button>';
+            }).join('') + '</div>' +
+            '<p class="hint">Сколько дней подряд нужно продержаться.</p>';
+        })() +
         '<button class="primary" data-act="' + (editing ? 'save' : 'create') + '" id="create"' + (editing ? '' : ' disabled') + '>' + (editing ? 'Сохранить' : 'Добавить') + '</button>' +
         (editing ? '<button class="secondary" data-act="back">Отмена</button>' : '');
+    } else if (state.type === 'more') {
+      renderMore();
     } else {
       var h = habits.find(function (x) { return x.id === state.id; });
       if (!h) { closeSheet(); return; }
@@ -353,18 +416,22 @@
         '<div><div class="stat-num">' + monthCount + '</div><div class="stat-cap">в этом месяце</div></div>' +
         '<div><div class="stat-num">' + Object.keys(h.done).length + '</div><div class="stat-cap">всего</div></div>' +
         '</div>' +
+        goalHtml(h) + awardsHtml(h) +
         '<div class="month-bar">' +
         '<button class="nav" data-nav="-1" aria-label="Предыдущий месяц">‹</button>' +
         '<span class="month-name">' + cap(new Date(y, m, 1).toLocaleDateString('ru', { month: 'long', year: 'numeric' }).replace(' г.', '')) + '</span>' +
         '<button class="nav" data-nav="1" aria-label="Следующий месяц"' + (isCurrent ? ' disabled' : '') + '>›</button>' +
         '</div>' +
         '<div class="grid">' + dows + cells + '</div>' +
+        '<span class="label">Весь год</span>' + habitHeat(h) +
         '<button class="danger" data-act="delete">Удалить привычку</button>';
     }
+    var hw = sheet.querySelector('.heat-wrap');
+    if (hw) hw.scrollLeft = hw.scrollWidth;
   }
 
   function openAdd() {
-    state = { type: 'add', color: 3, kind: 'good' };
+    state = { type: 'add', color: 3, kind: 'good', goal: 0 };
     sheet.removeAttribute('style');
     renderSheet(); openSheet();
     setTimeout(function () { var n = $('#name'); if (n) n.focus(); }, 50);
@@ -378,14 +445,14 @@
     var n = $('#name');
     var name = n ? n.value.trim() : '';
     if (!name) return;
-    habits.push({ id: 'h' + Date.now(), name: name, color: state.color, kind: state.kind, done: {} });
+    habits.push({ id: 'h' + Date.now(), name: name, color: state.color, kind: state.kind, goal: state.goal ? { days: state.goal, reachedAt: null } : null, awards: [], done: {} });
     save(); closeSheet(); render();
   }
 
   function startEdit() {
     var h = habits.find(function (x) { return x.id === state.id; });
     if (!h) return;
-    state = { type: 'edit', id: h.id, color: h.color % PALETTE.length, kind: h.kind || 'good', y: state.y, m: state.m };
+    state = { type: 'edit', id: h.id, color: h.color % PALETTE.length, kind: h.kind || 'good', goal: h.goal ? h.goal.days : 0, y: state.y, m: state.m };
     sheet.removeAttribute('style');
     renderSheet();
   }
@@ -399,12 +466,227 @@
     var name = n ? n.value.trim() : '';
     if (!h || !name) return;
     h.name = name; h.color = state.color; h.kind = state.kind;
+    if (!state.goal) h.goal = null;
+    else if (!h.goal || h.goal.days !== state.goal) h.goal = { days: state.goal, reachedAt: null };
+    checkGoal(h, true);
     save(); render(); backToDetail();
+  }
+
+  // ---------- Цели, награды, тепловая карта ----------
+  var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  var toastTimer;
+  function toast(msg) {
+    var t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('toast-show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('toast-show'); }, 3600);
+  }
+  function reduceMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  function confetti() {
+    var c = $('#confetti'), g = c.getContext('2d');
+    c.width = window.innerWidth; c.height = window.innerHeight;
+    var P = [], i;
+    for (i = 0; i < 90; i++) {
+      P.push({
+        x: c.width / 2 + (Math.random() - .5) * 120, y: c.height * .62,
+        vx: (Math.random() - .5) * 11, vy: -7 - Math.random() * 10,
+        r: 4 + Math.random() * 4, a: Math.random() * 6, c: PALETTE[i % PALETTE.length].c
+      });
+    }
+    var t0 = performance.now();
+    (function frame(t) {
+      var el = t - t0;
+      g.clearRect(0, 0, c.width, c.height);
+      if (el > 2300) return;
+      P.forEach(function (p) {
+        p.vy += .38; p.x += p.vx; p.y += p.vy; p.a += .2;
+        g.save(); g.translate(p.x, p.y); g.rotate(p.a);
+        g.globalAlpha = Math.max(0, 1 - el / 2300);
+        g.fillStyle = p.c; g.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+        g.restore();
+      });
+      requestAnimationFrame(frame);
+    })(t0);
+  }
+  function celebrate(h) {
+    toast('🏆 Цель достигнута: ' + h.name + ', ' + h.goal.days + ' дн. подряд');
+    if (!reduceMotion()) confetti();
+  }
+  function checkGoal(h, silent) {
+    if (!h.goal || h.goal.reachedAt) return;
+    if (streak(h) >= h.goal.days) {
+      h.goal.reachedAt = keyOf(new Date());
+      if (!h.awards) h.awards = [];
+      h.awards.push({ days: h.goal.days, date: h.goal.reachedAt });
+      if (!silent) celebrate(h);
+    }
+  }
+  function goalHtml(h) {
+    if (!h.goal) return '';
+    var gd = h.goal.days;
+    if (h.goal.reachedAt) return '<div class="goal goal-done">🏆 Цель достигнута: ' + gd + ' дн. подряд</div>';
+    var s = streak(h);
+    return '<div class="goal"><div class="goal-bar"><i style="width:' + Math.min(100, Math.round(s / gd * 100)) + '%"></i></div>' +
+      '<span class="goal-txt">' + s + ' из ' + gd + ' дн.</span></div>';
+  }
+  function awardsHtml(h) {
+    if (!h.awards || !h.awards.length) return '';
+    return '<p class="hint">Награды: ' + h.awards.map(function (a) { return '🏆 ' + a.days + ' дн.'; }).join(', ') + '</p>';
+  }
+
+  function heatmap(levelFn, styleStr) {
+    var now = new Date(), tk = keyOf(now);
+    var shift = (now.getDay() + 6) % 7;
+    var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - shift - 52 * 7);
+    var cells = '', months = '', lastM = -1;
+    for (var w = 0; w < 53; w++) {
+      var mon = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7);
+      if (mon.getMonth() !== lastM) {
+        var skip = (w === 0 && mon.getDate() > 21);
+        lastM = mon.getMonth();
+        if (!skip) months += '<span style="grid-column:' + (w + 1) + '">' + mon.toLocaleDateString('ru', { month: 'short' }).replace('.', '') + '</span>';
+      }
+      for (var d = 0; d < 7; d++) {
+        var dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d);
+        var k = keyOf(dt);
+        if (dt > now && k !== tk) { cells += '<i class="hc hc-gap"></i>'; continue; }
+        var r = levelFn(k);
+        cells += '<i class="hc' + (r.o ? '' : ' hc-0') + '"' + (r.o ? ' style="--o:' + r.o + '"' : '') +
+          ' data-hc="' + esc(dt.toLocaleDateString('ru', { day: 'numeric', month: 'long' }) + ': ' + r.cap) + '"></i>';
+      }
+    }
+    return '<div class="heat-wrap" role="img" aria-label="Активность за год"' + (styleStr ? ' style="' + styleStr + '"' : '') + '>' +
+      '<div class="heat-months">' + months + '</div><div class="heat">' + cells + '</div></div>' +
+      '<p class="heat-cap" id="heat-cap" aria-live="polite">Нажмите на квадрат, чтобы увидеть день.</p>';
+  }
+  function habitHeat(h) {
+    var yes = h.kind === 'quit' ? 'удержались' : 'выполнено';
+    return heatmap(function (k) { return h.done[k] ? { o: 1, cap: yes } : { o: 0, cap: 'нет отметки' }; });
+  }
+  function globalHeat() {
+    var n = habits.length;
+    return heatmap(function (k) {
+      var c = habits.filter(function (h) { return h.done[k]; }).length;
+      var f = n ? c / n : 0;
+      return { o: !c ? 0 : f < .34 ? .3 : f < .67 ? .55 : f < 1 ? .8 : 1, cap: c + ' из ' + n };
+    }, '--c:#7A5CFA');
+  }
+
+  // ---------- Экран «Награды и данные» ----------
+  function openMore() {
+    state = { type: 'more' };
+    renderSheet(); openSheet();
+  }
+  function renderMore() {
+    sheet.setAttribute('aria-label', 'Награды и данные');
+    sheet.removeAttribute('style');
+    var awards = [];
+    habits.forEach(function (h) {
+      (h.awards || []).forEach(function (a) { awards.push({ name: h.name, color: col(h), days: a.days, date: a.date }); });
+    });
+    awards.sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    var awardsList = awards.length ? '<ul class="awards-list">' + awards.map(function (a) {
+      var p = a.date.split('-');
+      var when = new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' });
+      return '<li style="' + style(a.color) + '"><span class="trophy">🏆</span><span><b>' + esc(a.name) + '</b><br>' +
+        '<span class="award-sub">' + a.days + ' дн. подряд, ' + when + '</span></span></li>';
+    }).join('') + '</ul>' : '<p class="hint">Наград пока нет. Поставьте цель: тап по названию привычки, затем «Изменить» и «Цель».</p>';
+    sheet.innerHTML =
+      '<h2 class="sheet-title">Награды и данные</h2>' +
+      '<span class="label">Активность за год</span>' +
+      (habits.length ? globalHeat() : '<p class="hint">Добавьте привычку, и здесь появится карта ваших дней.</p>') +
+      '<span class="label">Награды</span>' + awardsList +
+      '<span class="label">Копия данных</span>' +
+      '<p class="hint" style="margin:0 0 10px">Отметки хранятся только в этом телефоне. Сохраните копию, чтобы не потерять их.</p>' +
+      '<div class="btn-row"><button class="outline" data-act="export">Сохранить файл</button><button class="outline" data-act="copy">Скопировать</button></div>' +
+      '<span class="label">Восстановить из копии</span>' +
+      '<label class="outline file-btn" for="file">Выбрать файл</label>' +
+      '<input type="file" id="file" class="visually-hidden" accept="application/json,.json,text/plain">' +
+      '<textarea class="field area" id="paste" rows="3" placeholder="Или вставьте сюда скопированные данные" aria-label="Данные для восстановления"></textarea>' +
+      '<button class="outline" data-act="import-text">Восстановить из текста</button>';
+  }
+
+  // ---------- Резервная копия ----------
+  function backupJson() {
+    return JSON.stringify({ app: 'habit-tracker', version: 2, exportedAt: new Date().toISOString(), habits: habits }, null, 1);
+  }
+  function exportFile() {
+    var text = backupJson();
+    var name = 'privychki-' + keyOf(new Date()) + '.json';
+    var file = null;
+    try { file = new File([text], name, { type: 'application/json' }); } catch (e) { file = null; }
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Копия привычек' }).catch(function () {});
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    toast('Файл сохранён');
+  }
+  function copyData() {
+    var text = backupJson();
+    var done = function () { toast('Данные скопированы. Вставьте их в заметки или сообщение.'); };
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;opacity:0;top:0;font-size:16px';
+      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      ta.remove();
+      if (ok) done(); else toast('Не удалось скопировать. Попробуйте «Сохранить файл».');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+  function sanitize(h, seen) {
+    var id = String(h.id || '').replace(/[^\w-]/g, '');
+    if (!id || seen[id]) id = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    seen[id] = 1;
+    var done = {};
+    if (h.done && typeof h.done === 'object') {
+      Object.keys(h.done).forEach(function (k) { if (DATE_RE.test(k) && h.done[k]) done[k] = 1; });
+    }
+    var goal = null;
+    if (h.goal && +h.goal.days > 0) {
+      goal = { days: Math.min(3650, Math.round(+h.goal.days)), reachedAt: DATE_RE.test(h.goal.reachedAt) ? h.goal.reachedAt : null };
+    }
+    var awards = Array.isArray(h.awards) ? h.awards.filter(function (a) {
+      return a && +a.days > 0 && DATE_RE.test(a.date);
+    }).map(function (a) { return { days: Math.round(+a.days), date: a.date }; }) : [];
+    return {
+      id: id,
+      name: String(h.name).trim().slice(0, 40),
+      color: (Math.abs(parseInt(h.color, 10)) || 0) % PALETTE.length,
+      kind: h.kind === 'quit' ? 'quit' : 'good',
+      goal: goal, awards: awards, done: done
+    };
+  }
+  function importText(text) {
+    var data;
+    try { data = JSON.parse(String(text).trim()); }
+    catch (e) { return toast('Не удалось прочитать данные. Проверьте, что вставлен весь текст.'); }
+    var list = Array.isArray(data) ? data : (data && data.habits);
+    if (!Array.isArray(list)) return toast('Это не копия приложения «Привычки».');
+    var seen = {};
+    var clean = list.filter(function (h) { return h && typeof h.name === 'string' && h.name.trim(); })
+      .map(function (h) { return sanitize(h, seen); });
+    if (!clean.length) return toast('В этой копии нет привычек.');
+    if (!confirm('Заменить текущие привычки (' + habits.length + ') на данные из копии (' + clean.length + ')?')) return;
+    habits = clean; weekOffset = 0;
+    save(); closeSheet(); render();
+    toast('Данные восстановлены');
   }
 
   // ---------- События ----------
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-week],[data-kind],[data-act]');
+    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-week],[data-kind],[data-goal],[data-hc],[data-act]');
     if (!t) return;
     var ds = t.dataset;
     if (ds.week !== undefined) {
@@ -419,6 +701,20 @@
         b.setAttribute('aria-checked', on);
       });
       $('#hint').textContent = HINTS[state.kind];
+      return;
+    }
+    if (ds.goal !== undefined) {
+      state.goal = +ds.goal;
+      document.querySelectorAll('.chip').forEach(function (b) {
+        var on = +b.dataset.goal === state.goal;
+        b.classList.toggle('chip-sel', on);
+        b.setAttribute('aria-checked', on);
+      });
+      return;
+    }
+    if (ds.hc !== undefined) {
+      var cp = $('#heat-cap');
+      if (cp) cp.textContent = ds.hc;
       return;
     }
     if (ds.toggle) return toggle(ds.toggle, ds.day);
@@ -444,6 +740,13 @@
       case 'edit': return startEdit();
       case 'save': return saveEdit();
       case 'back': return backToDetail();
+      case 'more': return openMore();
+      case 'export': return exportFile();
+      case 'copy': return copyData();
+      case 'import-text':
+        var pv = $('#paste');
+        if (!pv || !pv.value.trim()) return toast('Сначала вставьте данные в поле.');
+        return importText(pv.value);
       case 'delete':
         var h = habits.find(function (x) { return x.id === state.id; });
         if (h && confirm('Удалить «' + h.name + '» вместе с историей отметок?')) {
@@ -453,6 +756,15 @@
     }
   });
 
+  document.addEventListener('change', function (e) {
+    if (e.target.id !== 'file') return;
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () { importText(String(r.result)); };
+    r.readAsText(f);
+    e.target.value = '';
+  });
   document.addEventListener('input', function (e) {
     if (e.target.id === 'name') $('#create').disabled = !e.target.value.trim();
   });
@@ -479,6 +791,13 @@
   })();
 
   render();
+
+  // Работа без интернета: sw.js лежит рядом с index.html
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
 })();
 </script>
 </body>
