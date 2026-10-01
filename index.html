@@ -145,6 +145,13 @@
   .cell-gap { aspect-ratio: 1; }
 
   .mark:disabled { opacity: .3; cursor: default; }
+  .group { margin: 26px 0 0; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .group:first-child { margin-top: 0; }
+  .group + .habit { margin-top: 8px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: #E4E2F0; }
+  .seg-btn { height: 44px; border: 0; border-radius: 10px; background: transparent; font-size: 16px; font-weight: 700; color: var(--muted); }
+  .seg-sel { background: #fff; color: var(--text); }
+  .hint { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
   .week-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
   .week-label { min-height: 44px; padding: 0 12px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--text); }
   .week-label:disabled { color: var(--text); cursor: default; }
@@ -201,6 +208,7 @@
   function save() { store.setItem('habits.v1', JSON.stringify(habits)); }
 
   var weekOffset = 0;
+  var HINTS = { good: 'Отмечайте дни, когда сделали.', quit: 'Отмечайте дни, когда удержались и не сделали.' };
   var $ = function (s) { return document.querySelector(s); };
   var pad = function (n) { return String(n).padStart(2, '0'); };
   var keyOf = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
@@ -245,10 +253,10 @@
     }
 
     if (!habits.length) {
-      $('#list').innerHTML = '<div class="empty">Привычек пока нет. Нажмите «Новая привычка» и выберите цвет: каждый выполненный день закрасит кружок.</div>';
+      $('#list').innerHTML = '<div class="empty">Привычек пока нет. Нажмите «Новая привычка», выберите тип и цвет: каждый удачный день закрасит кружок.</div>';
       return;
     }
-    $('#list').innerHTML = habits.map(function (h) {
+    var habitHtml = function (h) {
       var s = streak(h);
       var marks = days.map(function (d) {
         var k = keyOf(d), on = !!h.done[k];
@@ -265,6 +273,12 @@
         '<button class="habit-name" data-open="' + h.id + '">' + esc(h.name) + '</button>' +
         '<span class="streak' + (s ? ' streak-on' : '') + '">🔥 ' + s + ' дн.</span>' +
         '</div><div class="week">' + marks + '</div></section>';
+    };
+    var groups = [['good', 'Полезные привычки'], ['quit', 'Отказаться']];
+    $('#list').innerHTML = groups.map(function (g) {
+      var items = habits.filter(function (h) { return (h.kind || 'good') === g[0]; });
+      if (!items.length) return '';
+      return '<h2 class="group">' + g[1] + '</h2>' + items.map(habitHtml).join('');
     }).join('');
   }
 
@@ -299,6 +313,12 @@
       sheet.innerHTML =
         '<h2 class="sheet-title">' + ttl + '</h2>' +
         '<input class="field" id="name" type="text" maxlength="40" placeholder="Например, Пить воду" autocomplete="off" aria-label="Название привычки" value="' + (editing ? esc(eh.name) : '') + '">' +
+        '<span class="label">Тип</span>' +
+        '<div class="seg" role="radiogroup" aria-label="Тип привычки">' +
+        '<button class="seg-btn' + (state.kind === 'good' ? ' seg-sel' : '') + '" data-kind="good" role="radio" aria-checked="' + (state.kind === 'good') + '">Полезная</button>' +
+        '<button class="seg-btn' + (state.kind === 'quit' ? ' seg-sel' : '') + '" data-kind="quit" role="radio" aria-checked="' + (state.kind === 'quit') + '">Отказаться</button>' +
+        '</div>' +
+        '<p class="hint" id="hint">' + HINTS[state.kind] + '</p>' +
         '<span class="label">Цвет отметок</span>' +
         '<div class="swatches" role="radiogroup" aria-label="Цвет">' +
         PALETTE.map(function (p, i) {
@@ -344,7 +364,7 @@
   }
 
   function openAdd() {
-    state = { type: 'add', color: 3 };
+    state = { type: 'add', color: 3, kind: 'good' };
     sheet.removeAttribute('style');
     renderSheet(); openSheet();
     setTimeout(function () { var n = $('#name'); if (n) n.focus(); }, 50);
@@ -358,14 +378,14 @@
     var n = $('#name');
     var name = n ? n.value.trim() : '';
     if (!name) return;
-    habits.push({ id: 'h' + Date.now(), name: name, color: state.color, done: {} });
+    habits.push({ id: 'h' + Date.now(), name: name, color: state.color, kind: state.kind, done: {} });
     save(); closeSheet(); render();
   }
 
   function startEdit() {
     var h = habits.find(function (x) { return x.id === state.id; });
     if (!h) return;
-    state = { type: 'edit', id: h.id, color: h.color % PALETTE.length, y: state.y, m: state.m };
+    state = { type: 'edit', id: h.id, color: h.color % PALETTE.length, kind: h.kind || 'good', y: state.y, m: state.m };
     sheet.removeAttribute('style');
     renderSheet();
   }
@@ -378,18 +398,28 @@
     var n = $('#name');
     var name = n ? n.value.trim() : '';
     if (!h || !name) return;
-    h.name = name; h.color = state.color;
+    h.name = name; h.color = state.color; h.kind = state.kind;
     save(); render(); backToDetail();
   }
 
   // ---------- События ----------
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-week],[data-act]');
+    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-week],[data-kind],[data-act]');
     if (!t) return;
     var ds = t.dataset;
     if (ds.week !== undefined) {
       weekOffset = ds.week === '0' ? 0 : Math.min(0, weekOffset + (+ds.week));
       return render();
+    }
+    if (ds.kind) {
+      state.kind = ds.kind;
+      document.querySelectorAll('.seg-btn').forEach(function (b) {
+        var on = b.dataset.kind === state.kind;
+        b.classList.toggle('seg-sel', on);
+        b.setAttribute('aria-checked', on);
+      });
+      $('#hint').textContent = HINTS[state.kind];
+      return;
     }
     if (ds.toggle) return toggle(ds.toggle, ds.day);
     if (ds.open) return openDetail(ds.open);
