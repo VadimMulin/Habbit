@@ -144,6 +144,15 @@
   .cell:disabled { color: var(--line); cursor: default; }
   .cell-gap { aspect-ratio: 1; }
 
+  .mark:disabled { opacity: .3; cursor: default; }
+  .week-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+  .week-label { min-height: 44px; padding: 0 12px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--text); }
+  .week-label:disabled { color: var(--text); cursor: default; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .sheet-title-flush { margin: 0; }
+  .edit { flex: none; height: 38px; padding: 0 16px; border: 0; border-radius: 19px; background: #fff; font-size: 15px; font-weight: 700; }
+  .secondary { width: 100%; height: 50px; margin-top: 8px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--muted); }
+
   @media (prefers-reduced-motion: reduce) {
     .sheet, .backdrop, .mark::before, .mark svg { transition: none; }
     .mark-pop { animation: none; }
@@ -154,6 +163,7 @@
 <main class="app">
   <h1 class="date" id="date"></h1>
   <p class="summary" id="summary"></p>
+  <div class="week-bar" id="weekbar"></div>
   <div class="list" id="list"></div>
 </main>
 
@@ -190,6 +200,7 @@
   try { habits = JSON.parse(store.getItem('habits.v1') || '[]'); } catch (e) { habits = []; }
   function save() { store.setItem('habits.v1', JSON.stringify(habits)); }
 
+  var weekOffset = 0;
   var $ = function (s) { return document.querySelector(s); };
   var pad = function (n) { return String(n).padStart(2, '0'); };
   var keyOf = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
@@ -218,8 +229,20 @@
     var doneToday = habits.filter(function (h) { return h.done[tk]; }).length;
     $('#summary').textContent = habits.length ? 'Сегодня отмечено ' + doneToday + ' из ' + habits.length : '';
 
+    var mondayShift = (now.getDay() + 6) % 7;
     var days = [];
-    for (var i = 6; i >= 0; i--) days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+    for (var i = 0; i < 7; i++) days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayShift + weekOffset * 7 + i));
+
+    var wb = $('#weekbar');
+    if (habits.length) {
+      var fmt = function (d) { return d.toLocaleDateString('ru', { day: 'numeric', month: 'short' }).replace('.', ''); };
+      var label = weekOffset === 0 ? 'Эта неделя' : fmt(days[0]) + ' – ' + fmt(days[6]);
+      wb.innerHTML = '<button class="nav" data-week="-1" aria-label="Предыдущая неделя">‹</button>' +
+        '<button class="week-label" data-week="0"' + (weekOffset === 0 ? ' disabled' : '') + '>' + label + '</button>' +
+        '<button class="nav" data-week="1" aria-label="Следующая неделя"' + (weekOffset >= 0 ? ' disabled' : '') + '>›</button>';
+    } else {
+      wb.innerHTML = '';
+    }
 
     if (!habits.length) {
       $('#list').innerHTML = '<div class="empty">Привычек пока нет. Нажмите «Новая привычка» и выберите цвет: каждый выполненный день закрасит кружок.</div>';
@@ -229,11 +252,12 @@
       var s = streak(h);
       var marks = days.map(function (d) {
         var k = keyOf(d), on = !!h.done[k];
+        var future = d > now && k !== tk;
         var dow = d.toLocaleDateString('ru', { weekday: 'short' });
         return '<div class="day">' +
           '<span class="dow' + (k === tk ? ' dow-today' : '') + '">' + dow + '</span>' +
           '<button class="mark' + (on ? ' mark-on' : '') + '" data-toggle="' + h.id + '" data-day="' + k + '"' +
-          ' aria-pressed="' + on + '" aria-label="' + esc(h.name) + ', ' + d.toLocaleDateString('ru', { day: 'numeric', month: 'long' }) + '">' + CHECK + '</button>' +
+          (future ? ' disabled' : '') + ' aria-pressed="' + on + '" aria-label="' + esc(h.name) + ', ' + d.toLocaleDateString('ru', { day: 'numeric', month: 'long' }) + '">' + CHECK + '</button>' +
           '</div>';
       }).join('');
       return '<section class="habit" style="' + style(col(h)) + '">' +
@@ -266,18 +290,23 @@
 
   function renderSheet() {
     if (!state) return;
-    if (state.type === 'add') {
-      sheet.setAttribute('aria-label', 'Новая привычка');
+    if (state.type === 'add' || state.type === 'edit') {
+      var editing = state.type === 'edit';
+      var eh = editing ? habits.find(function (x) { return x.id === state.id; }) : null;
+      if (editing && !eh) { closeSheet(); return; }
+      var ttl = editing ? 'Изменить привычку' : 'Новая привычка';
+      sheet.setAttribute('aria-label', ttl);
       sheet.innerHTML =
-        '<h2 class="sheet-title">Новая привычка</h2>' +
-        '<input class="field" id="name" type="text" maxlength="40" placeholder="Например, Пить воду" autocomplete="off" aria-label="Название привычки">' +
+        '<h2 class="sheet-title">' + ttl + '</h2>' +
+        '<input class="field" id="name" type="text" maxlength="40" placeholder="Например, Пить воду" autocomplete="off" aria-label="Название привычки" value="' + (editing ? esc(eh.name) : '') + '">' +
         '<span class="label">Цвет отметок</span>' +
         '<div class="swatches" role="radiogroup" aria-label="Цвет">' +
         PALETTE.map(function (p, i) {
           return '<button class="swatch' + (i === state.color ? ' swatch-sel' : '') + '" style="' + style(p) + '" data-swatch="' + i + '" role="radio" aria-checked="' + (i === state.color) + '" aria-label="Цвет ' + (i + 1) + '">' + CHECK + '</button>';
         }).join('') +
         '</div>' +
-        '<button class="primary" data-act="create" id="create" disabled>Добавить</button>';
+        '<button class="primary" data-act="' + (editing ? 'save' : 'create') + '" id="create"' + (editing ? '' : ' disabled') + '>' + (editing ? 'Сохранить' : 'Добавить') + '</button>' +
+        (editing ? '<button class="secondary" data-act="back">Отмена</button>' : '');
     } else {
       var h = habits.find(function (x) { return x.id === state.id; });
       if (!h) { closeSheet(); return; }
@@ -298,7 +327,7 @@
       sheet.setAttribute('aria-label', h.name);
       sheet.setAttribute('style', style(col(h)));
       sheet.innerHTML =
-        '<h2 class="sheet-title">' + esc(h.name) + '</h2>' +
+        '<div class="sheet-head"><h2 class="sheet-title sheet-title-flush">' + esc(h.name) + '</h2><button class="edit" data-act="edit">Изменить</button></div>' +
         '<div class="stats">' +
         '<div><div class="stat-num">' + streak(h) + '</div><div class="stat-cap">серия, дн.</div></div>' +
         '<div><div class="stat-num">' + monthCount + '</div><div class="stat-cap">в этом месяце</div></div>' +
@@ -333,11 +362,35 @@
     save(); closeSheet(); render();
   }
 
+  function startEdit() {
+    var h = habits.find(function (x) { return x.id === state.id; });
+    if (!h) return;
+    state = { type: 'edit', id: h.id, color: h.color % PALETTE.length, y: state.y, m: state.m };
+    sheet.removeAttribute('style');
+    renderSheet();
+  }
+  function backToDetail() {
+    state = { type: 'detail', id: state.id, y: state.y, m: state.m };
+    renderSheet();
+  }
+  function saveEdit() {
+    var h = habits.find(function (x) { return x.id === state.id; });
+    var n = $('#name');
+    var name = n ? n.value.trim() : '';
+    if (!h || !name) return;
+    h.name = name; h.color = state.color;
+    save(); render(); backToDetail();
+  }
+
   // ---------- События ----------
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-act]');
+    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-week],[data-act]');
     if (!t) return;
     var ds = t.dataset;
+    if (ds.week !== undefined) {
+      weekOffset = ds.week === '0' ? 0 : Math.min(0, weekOffset + (+ds.week));
+      return render();
+    }
     if (ds.toggle) return toggle(ds.toggle, ds.day);
     if (ds.open) return openDetail(ds.open);
     if (ds.cday) return toggle(state.id, ds.cday);
@@ -358,6 +411,9 @@
       case 'new': return openAdd();
       case 'close': return closeSheet();
       case 'create': return create();
+      case 'edit': return startEdit();
+      case 'save': return saveEdit();
+      case 'back': return backToDetail();
       case 'delete':
         var h = habits.find(function (x) { return x.id === state.id; });
         if (h && confirm('Удалить «' + h.name + '» вместе с историей отметок?')) {
@@ -371,7 +427,7 @@
     if (e.target.id === 'name') $('#create').disabled = !e.target.value.trim();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && e.target.id === 'name') create();
+    if (e.key === 'Enter' && e.target.id === 'name') { if (state && state.type === 'edit') saveEdit(); else create(); }
     if (e.key === 'Escape') closeSheet();
   });
   // Обновить даты, когда приложение снова открывают на следующий день
