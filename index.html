@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ECEBF3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Привычки">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Привычки</title>
+<style>
+  :root {
+    --bg: #ECEBF3;
+    --paper: #F8F7FC;
+    --text: #1D1B3A;
+    --muted: #6B6A85;
+    --line: #D3D1E2;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; touch-action: manipulation; cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+
+  .app {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 120px);
+  }
+  .date { font-size: 34px; line-height: 1.1; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+  .summary { margin: 6px 0 0; min-height: 22px; color: var(--muted); font-size: 16px; }
+
+  .list { margin-top: 20px; }
+  .habit { padding: 18px 0 20px; border-top: 1.5px solid var(--line); }
+  .habit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .habit-name {
+    background: none; border: 0; padding: 0; text-align: left;
+    font-size: 20px; font-weight: 700; line-height: 1.2;
+  }
+  .streak { flex: none; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .streak-on { color: var(--text); }
+
+  .week { display: flex; gap: 6px; }
+  .day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  .dow { font-size: 13px; color: var(--muted); }
+  .dow-today { color: var(--text); font-weight: 800; }
+
+  .mark {
+    position: relative;
+    width: 100%; max-width: 44px; aspect-ratio: 1;
+    padding: 0;
+    border: 2.5px solid var(--c);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--on);
+    display: grid; place-items: center;
+  }
+  .mark::before {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: var(--c); opacity: .14;
+    transition: opacity .15s;
+  }
+  .mark-on::before { opacity: 1; }
+  .mark svg { position: relative; opacity: 0; transform: scale(.4); transition: opacity .15s, transform .2s; }
+  .mark-on svg { opacity: 1; transform: scale(1); }
+  .mark-pop { animation: pop .32s ease-out; }
+  @keyframes pop { 0% { transform: scale(.82); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+
+  .empty { padding: 48px 0; color: var(--muted); font-size: 17px; line-height: 1.5; border-top: 1.5px solid var(--line); }
+
+  .add {
+    position: fixed; left: 20px; right: 20px;
+    bottom: calc(env(safe-area-inset-bottom) + 16px);
+    max-width: 480px; margin: 0 auto;
+    height: 56px; border: 0; border-radius: 28px;
+    background: var(--text); color: #fff;
+    font-size: 17px; font-weight: 700;
+  }
+
+  .backdrop {
+    position: fixed; inset: 0; background: rgba(29, 27, 58, .42);
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .backdrop-open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    max-width: 520px; margin: 0 auto; max-height: 90vh; overflow-y: auto;
+    background: var(--paper); border-radius: 26px 26px 0 0;
+    padding: 22px 20px calc(env(safe-area-inset-bottom) + 22px);
+    transform: translateY(105%); transition: transform .28s ease-out;
+  }
+  .sheet-open { transform: translateY(0); }
+  .sheet-title { margin: 0 0 16px; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+
+  .field {
+    width: 100%; height: 52px; padding: 0 16px;
+    border: 2px solid var(--line); border-radius: 14px;
+    background: #fff; color: var(--text);
+    font: inherit; font-size: 17px;
+  }
+  .label { display: block; margin: 20px 0 10px; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; justify-items: center; }
+  .swatch {
+    width: 52px; height: 52px; border: 0; border-radius: 50%;
+    background: var(--c); color: var(--on);
+    display: grid; place-items: center;
+  }
+  .swatch svg { opacity: 0; }
+  .swatch-sel { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--text); }
+  .swatch-sel svg { opacity: 1; }
+
+  .primary {
+    width: 100%; height: 54px; margin-top: 24px; border: 0; border-radius: 27px;
+    background: var(--text); color: #fff; font-size: 17px; font-weight: 700;
+  }
+  .primary:disabled { opacity: .35; }
+  .danger {
+    width: 100%; height: 50px; margin-top: 18px; border: 0; background: none;
+    font-size: 16px; font-weight: 700; color: #C8372D;
+  }
+
+  .stats { display: flex; gap: 24px; margin-bottom: 8px; }
+  .stat-num { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-cap { margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .month-bar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
+  .month-name { font-size: 17px; font-weight: 700; }
+  .nav { width: 44px; height: 44px; border: 0; border-radius: 50%; background: #fff; font-size: 22px; line-height: 1; }
+  .nav:disabled { opacity: .3; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .grid-dow { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 2px; }
+  .cell {
+    position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%;
+    background: transparent; font-size: 15px; font-weight: 600;
+  }
+  .cell-on { background: var(--c); color: var(--on); }
+  .cell-today { box-shadow: inset 0 0 0 2px var(--text); }
+  .cell:disabled { color: var(--line); cursor: default; }
+  .cell-gap { aspect-ratio: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .backdrop, .mark::before, .mark svg { transition: none; }
+    .mark-pop { animation: none; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <h1 class="date" id="date"></h1>
+  <p class="summary" id="summary"></p>
+  <div class="list" id="list"></div>
+</main>
+
+<button class="add" data-act="new">Новая привычка</button>
+
+<div class="backdrop" id="backdrop" data-act="close"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+
+<script>
+(function () {
+  var PALETTE = [
+    { c: '#FF5A4F', on: '#FFFFFF' },
+    { c: '#FF9F1C', on: '#1D1B3A' },
+    { c: '#FFD23F', on: '#1D1B3A' },
+    { c: '#2EC4A6', on: '#1D1B3A' },
+    { c: '#3FA7FF', on: '#1D1B3A' },
+    { c: '#7A5CFA', on: '#FFFFFF' },
+    { c: '#FF6FB5', on: '#1D1B3A' },
+    { c: '#8BD450', on: '#1D1B3A' }
+  ];
+  var CHECK = '<svg viewBox="0 0 24 24" width="55%" height="55%" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  // Хранилище: localStorage, а если он недоступен, то память страницы
+  var store = (function () {
+    try {
+      localStorage.setItem('_t', '1'); localStorage.removeItem('_t');
+      return localStorage;
+    } catch (e) {
+      var m = {};
+      return { getItem: function (k) { return m[k] || null; }, setItem: function (k, v) { m[k] = v; } };
+    }
+  })();
+  var habits = [];
+  try { habits = JSON.parse(store.getItem('habits.v1') || '[]'); } catch (e) { habits = []; }
+  function save() { store.setItem('habits.v1', JSON.stringify(habits)); }
+
+  var $ = function (s) { return document.querySelector(s); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var keyOf = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  var cap = function (s) { return s.charAt(0).toUpperCase() + s.slice(1); };
+  var esc = function (s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  var col = function (h) { return PALETTE[h.color % PALETTE.length]; };
+  var style = function (p) { return '--c:' + p.c + ';--on:' + p.on; };
+
+  function streak(h) {
+    var d = new Date();
+    if (!h.done[keyOf(d)]) d.setDate(d.getDate() - 1);
+    var n = 0;
+    while (h.done[keyOf(d)]) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
+  // ---------- Главный экран ----------
+  function render() {
+    var now = new Date();
+    $('#date').textContent = cap(now.toLocaleDateString('ru', { weekday: 'long', day: 'numeric', month: 'long' }));
+    var tk = keyOf(now);
+    var doneToday = habits.filter(function (h) { return h.done[tk]; }).length;
+    $('#summary').textContent = habits.length ? 'Сегодня отмечено ' + doneToday + ' из ' + habits.length : '';
+
+    var days = [];
+    for (var i = 6; i >= 0; i--) days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i));
+
+    if (!habits.length) {
+      $('#list').innerHTML = '<div class="empty">Привычек пока нет. Нажмите «Новая привычка» и выберите цвет: каждый выполненный день закрасит кружок.</div>';
+      return;
+    }
+    $('#list').innerHTML = habits.map(function (h) {
+      var s = streak(h);
+      var marks = days.map(function (d) {
+        var k = keyOf(d), on = !!h.done[k];
+        var dow = d.toLocaleDateString('ru', { weekday: 'short' });
+        return '<div class="day">' +
+          '<span class="dow' + (k === tk ? ' dow-today' : '') + '">' + dow + '</span>' +
+          '<button class="mark' + (on ? ' mark-on' : '') + '" data-toggle="' + h.id + '" data-day="' + k + '"' +
+          ' aria-pressed="' + on + '" aria-label="' + esc(h.name) + ', ' + d.toLocaleDateString('ru', { day: 'numeric', month: 'long' }) + '">' + CHECK + '</button>' +
+          '</div>';
+      }).join('');
+      return '<section class="habit" style="' + style(col(h)) + '">' +
+        '<div class="habit-head">' +
+        '<button class="habit-name" data-open="' + h.id + '">' + esc(h.name) + '</button>' +
+        '<span class="streak' + (s ? ' streak-on' : '') + '">🔥 ' + s + ' дн.</span>' +
+        '</div><div class="week">' + marks + '</div></section>';
+    }).join('');
+  }
+
+  function toggle(id, key) {
+    var h = habits.find(function (x) { return x.id === id; });
+    if (!h) return;
+    if (h.done[key]) delete h.done[key]; else h.done[key] = 1;
+    save();
+    render();
+    if (state && state.type === 'detail' && state.id === id) renderSheet();
+    if (h.done[key]) {
+      var el = document.querySelector('[data-toggle="' + id + '"][data-day="' + key + '"]');
+      if (el) el.classList.add('mark-pop');
+    }
+  }
+
+  // ---------- Нижняя шторка ----------
+  var state = null;
+  var sheet = $('#sheet'), backdrop = $('#backdrop');
+
+  function openSheet() { backdrop.classList.add('backdrop-open'); sheet.classList.add('sheet-open'); }
+  function closeSheet() { backdrop.classList.remove('backdrop-open'); sheet.classList.remove('sheet-open'); state = null; }
+
+  function renderSheet() {
+    if (!state) return;
+    if (state.type === 'add') {
+      sheet.setAttribute('aria-label', 'Новая привычка');
+      sheet.innerHTML =
+        '<h2 class="sheet-title">Новая привычка</h2>' +
+        '<input class="field" id="name" type="text" maxlength="40" placeholder="Например, Пить воду" autocomplete="off" aria-label="Название привычки">' +
+        '<span class="label">Цвет отметок</span>' +
+        '<div class="swatches" role="radiogroup" aria-label="Цвет">' +
+        PALETTE.map(function (p, i) {
+          return '<button class="swatch' + (i === state.color ? ' swatch-sel' : '') + '" style="' + style(p) + '" data-swatch="' + i + '" role="radio" aria-checked="' + (i === state.color) + '" aria-label="Цвет ' + (i + 1) + '">' + CHECK + '</button>';
+        }).join('') +
+        '</div>' +
+        '<button class="primary" data-act="create" id="create" disabled>Добавить</button>';
+    } else {
+      var h = habits.find(function (x) { return x.id === state.id; });
+      if (!h) { closeSheet(); return; }
+      var y = state.y, m = state.m, now = new Date(), tk = keyOf(now);
+      var prefix = y + '-' + pad(m + 1);
+      var monthCount = Object.keys(h.done).filter(function (k) { return k.indexOf(prefix) === 0; }).length;
+      var offset = (new Date(y, m, 1).getDay() + 6) % 7;
+      var dim = new Date(y, m + 1, 0).getDate();
+      var isCurrent = y === now.getFullYear() && m === now.getMonth();
+      var cells = '';
+      for (var i = 0; i < offset; i++) cells += '<div class="cell-gap"></div>';
+      for (var d = 1; d <= dim; d++) {
+        var dt = new Date(y, m, d), k = keyOf(dt), on = !!h.done[k];
+        var future = dt > now && k !== tk;
+        cells += '<button class="cell' + (on ? ' cell-on' : '') + (k === tk ? ' cell-today' : '') + '" data-cday="' + k + '"' + (future ? ' disabled' : '') + ' aria-pressed="' + on + '">' + d + '</button>';
+      }
+      var dows = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(function (x) { return '<div class="grid-dow">' + x + '</div>'; }).join('');
+      sheet.setAttribute('aria-label', h.name);
+      sheet.setAttribute('style', style(col(h)));
+      sheet.innerHTML =
+        '<h2 class="sheet-title">' + esc(h.name) + '</h2>' +
+        '<div class="stats">' +
+        '<div><div class="stat-num">' + streak(h) + '</div><div class="stat-cap">серия, дн.</div></div>' +
+        '<div><div class="stat-num">' + monthCount + '</div><div class="stat-cap">в этом месяце</div></div>' +
+        '<div><div class="stat-num">' + Object.keys(h.done).length + '</div><div class="stat-cap">всего</div></div>' +
+        '</div>' +
+        '<div class="month-bar">' +
+        '<button class="nav" data-nav="-1" aria-label="Предыдущий месяц">‹</button>' +
+        '<span class="month-name">' + cap(new Date(y, m, 1).toLocaleDateString('ru', { month: 'long', year: 'numeric' }).replace(' г.', '')) + '</span>' +
+        '<button class="nav" data-nav="1" aria-label="Следующий месяц"' + (isCurrent ? ' disabled' : '') + '>›</button>' +
+        '</div>' +
+        '<div class="grid">' + dows + cells + '</div>' +
+        '<button class="danger" data-act="delete">Удалить привычку</button>';
+    }
+  }
+
+  function openAdd() {
+    state = { type: 'add', color: 3 };
+    sheet.removeAttribute('style');
+    renderSheet(); openSheet();
+    setTimeout(function () { var n = $('#name'); if (n) n.focus(); }, 50);
+  }
+  function openDetail(id) {
+    var now = new Date();
+    state = { type: 'detail', id: id, y: now.getFullYear(), m: now.getMonth() };
+    renderSheet(); openSheet();
+  }
+  function create() {
+    var n = $('#name');
+    var name = n ? n.value.trim() : '';
+    if (!name) return;
+    habits.push({ id: 'h' + Date.now(), name: name, color: state.color, done: {} });
+    save(); closeSheet(); render();
+  }
+
+  // ---------- События ----------
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-act]');
+    if (!t) return;
+    var ds = t.dataset;
+    if (ds.toggle) return toggle(ds.toggle, ds.day);
+    if (ds.open) return openDetail(ds.open);
+    if (ds.cday) return toggle(state.id, ds.cday);
+    if (ds.swatch !== undefined) {
+      state.color = +ds.swatch;
+      document.querySelectorAll('.swatch').forEach(function (b, i) {
+        b.classList.toggle('swatch-sel', i === state.color);
+        b.setAttribute('aria-checked', i === state.color);
+      });
+      return;
+    }
+    if (ds.nav) {
+      var d = new Date(state.y, state.m + (+ds.nav), 1);
+      state.y = d.getFullYear(); state.m = d.getMonth();
+      return renderSheet();
+    }
+    switch (ds.act) {
+      case 'new': return openAdd();
+      case 'close': return closeSheet();
+      case 'create': return create();
+      case 'delete':
+        var h = habits.find(function (x) { return x.id === state.id; });
+        if (h && confirm('Удалить «' + h.name + '» вместе с историей отметок?')) {
+          habits = habits.filter(function (x) { return x.id !== h.id; });
+          save(); closeSheet(); render();
+        }
+    }
+  });
+
+  document.addEventListener('input', function (e) {
+    if (e.target.id === 'name') $('#create').disabled = !e.target.value.trim();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.id === 'name') create();
+    if (e.key === 'Escape') closeSheet();
+  });
+  // Обновить даты, когда приложение снова открывают на следующий день
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) render(); });
+
+  // Иконка для экрана «Домой»
+  (function () {
+    var c = document.createElement('canvas'); c.width = c.height = 180;
+    var g = c.getContext('2d');
+    g.fillStyle = '#1D1B3A'; g.fillRect(0, 0, 180, 180);
+    var cols = ['#FF5A4F', '#FF9F1C', '#FFD23F', '#2EC4A6', '#3FA7FF', '#7A5CFA', '#FF6FB5', '#8BD450', '#FFD23F'];
+    for (var i = 0; i < 9; i++) {
+      g.fillStyle = cols[i]; g.beginPath();
+      g.arc(45 + (i % 3) * 45, 45 + Math.floor(i / 3) * 45, 16, 0, Math.PI * 2); g.fill();
+    }
+    var l = document.createElement('link');
+    l.rel = 'apple-touch-icon'; l.href = c.toDataURL('image/png');
+    document.head.appendChild(l);
+  })();
+
+  render();
+})();
+</script>
+</body>
+</html>
