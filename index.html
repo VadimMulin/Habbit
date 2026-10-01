@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ECEBF3">
+<meta name="theme-color" content="#ECEBF3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14131F" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Привычки">
@@ -11,11 +13,31 @@
 <title>Привычки</title>
 <style>
   :root {
+    color-scheme: light dark;
     --bg: #ECEBF3;
     --paper: #F8F7FC;
+    --card: #FFFFFF;
     --text: #1D1B3A;
     --muted: #6B6A85;
     --line: #D3D1E2;
+    --seg: #E4E2F0;
+    --btn-text: #FFFFFF;
+    --danger: #C8372D;
+    --scrim: rgba(29, 27, 58, .42);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14131F;
+      --paper: #1E1D2E;
+      --card: #2A2940;
+      --text: #F1F0FA;
+      --muted: #A3A2C0;
+      --line: #3A3855;
+      --seg: #14131F;
+      --btn-text: #14131F;
+      --danger: #FF7A70;
+      --scrim: rgba(0, 0, 0, .6);
+    }
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -34,18 +56,31 @@
     margin: 0 auto;
     padding: calc(env(safe-area-inset-top) + 24px) 20px calc(env(safe-area-inset-bottom) + 120px);
   }
+  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .top-btns { display: flex; gap: 8px; flex: none; margin-top: 2px; }
+  .round { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--card); color: var(--text); display: grid; place-items: center; }
   .date { font-size: 34px; line-height: 1.1; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
   .summary { margin: 6px 0 0; min-height: 22px; color: var(--muted); font-size: 16px; }
 
-  .list { margin-top: 20px; }
+  .week-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+  .nav { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--card); font-size: 22px; line-height: 1; }
+  .nav:disabled { opacity: .3; }
+  .week-label { min-height: 44px; padding: 0 12px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--text); }
+  .week-label:disabled { color: var(--text); cursor: default; }
+
+  .list { margin-top: 14px; }
+  .group { margin: 26px 0 0; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .group:first-child { margin-top: 0; }
+  .group + .habit { margin-top: 8px; }
   .habit { padding: 18px 0 20px; border-top: 1.5px solid var(--line); }
-  .habit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-  .habit-name {
-    background: none; border: 0; padding: 0; text-align: left;
-    font-size: 20px; font-weight: 700; line-height: 1.2;
-  }
-  .streak { flex: none; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .habit-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .habit-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .habit-name { background: none; border: 0; padding: 0; text-align: left; font-size: 20px; font-weight: 700; line-height: 1.2; }
+  .habit-sub { font-size: 13px; color: var(--muted); }
+  .streak { flex: none; font-size: 15px; font-weight: 700; color: var(--muted); padding-top: 2px; }
   .streak-on { color: var(--text); }
+  .why { margin: 14px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); font-style: italic; }
+  .tip { margin: 22px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
 
   .week { display: flex; gap: 6px; }
   .day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
@@ -61,6 +96,7 @@
     background: transparent;
     color: var(--on);
     display: grid; place-items: center;
+    -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
   }
   .mark::before {
     content: ""; position: absolute; inset: 0; border-radius: 50%;
@@ -68,10 +104,25 @@
     transition: opacity .15s;
   }
   .mark-on::before { opacity: 1; }
+  .mark-part::before { opacity: 1; background: conic-gradient(var(--c) calc(var(--p) * 1%), transparent 0); }
   .mark svg { position: relative; opacity: 0; transform: scale(.4); transition: opacity .15s, transform .2s; }
   .mark-on svg { opacity: 1; transform: scale(1); }
+  .mark-rest { border-style: dashed; color: var(--text); }
+  .mark-rest svg { opacity: .75; transform: none; }
+  .mark-off { opacity: .5; }
+  .mark:disabled { opacity: .3; cursor: default; }
+  .has-note::after {
+    content: ""; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px;
+    border-radius: 50%; background: var(--text); border: 2px solid var(--bg);
+  }
   .mark-pop { animation: pop .32s ease-out; }
   @keyframes pop { 0% { transform: scale(.82); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+
+  .goal { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 14px; color: var(--muted); }
+  .goal-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .goal-bar i { display: block; height: 100%; border-radius: 4px; background: var(--c); }
+  .goal-txt { flex: none; font-weight: 700; }
+  .goal-done { color: var(--text); font-weight: 700; }
 
   .empty { padding: 48px 0; color: var(--muted); font-size: 17px; line-height: 1.5; border-top: 1.5px solid var(--line); }
 
@@ -80,12 +131,12 @@
     bottom: calc(env(safe-area-inset-bottom) + 16px);
     max-width: 480px; margin: 0 auto;
     height: 56px; border: 0; border-radius: 28px;
-    background: var(--text); color: #fff;
+    background: var(--text); color: var(--btn-text);
     font-size: 17px; font-weight: 700;
   }
 
   .backdrop {
-    position: fixed; inset: 0; background: rgba(29, 27, 58, .42);
+    position: fixed; inset: 0; background: var(--scrim);
     opacity: 0; pointer-events: none; transition: opacity .25s;
   }
   .backdrop-open { opacity: 1; pointer-events: auto; }
@@ -98,80 +149,65 @@
   }
   .sheet-open { transform: translateY(0); }
   .sheet-title { margin: 0 0 16px; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .sheet-title-flush { margin: 0; }
+  .edit { flex: none; height: 38px; padding: 0 16px; border: 0; border-radius: 19px; background: var(--card); font-size: 15px; font-weight: 700; }
+  .quote { margin: -6px 0 12px; font-size: 15px; line-height: 1.4; color: var(--muted); font-style: italic; }
 
   .field {
     width: 100%; height: 52px; padding: 0 16px;
     border: 2px solid var(--line); border-radius: 14px;
-    background: #fff; color: var(--text);
+    background: var(--card); color: var(--text);
     font: inherit; font-size: 17px;
   }
+  .area { height: auto; margin: 0; padding: 12px 16px; resize: none; line-height: 1.4; }
   .label { display: block; margin: 20px 0 10px; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .hint { margin: 8px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+  .qty-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: var(--seg); }
+  .seg-btn { min-height: 44px; padding: 6px 4px; border: 0; border-radius: 10px; background: transparent; font-size: 15px; font-weight: 700; line-height: 1.15; color: var(--muted); }
+  .seg-sel { background: var(--card); color: var(--text); }
+
   .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; justify-items: center; }
-  .swatch {
-    width: 52px; height: 52px; border: 0; border-radius: 50%;
-    background: var(--c); color: var(--on);
-    display: grid; place-items: center;
-  }
+  .swatch { width: 52px; height: 52px; border: 0; border-radius: 50%; background: var(--c); color: var(--on); display: grid; place-items: center; }
   .swatch svg { opacity: 0; }
   .swatch-sel { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--text); }
   .swatch-sel svg { opacity: 1; }
 
-  .primary {
-    width: 100%; height: 54px; margin-top: 24px; border: 0; border-radius: 27px;
-    background: var(--text); color: #fff; font-size: 17px; font-weight: 700;
-  }
-  .primary:disabled { opacity: .35; }
-  .danger {
-    width: 100%; height: 50px; margin-top: 18px; border: 0; background: none;
-    font-size: 16px; font-weight: 700; color: #C8372D;
-  }
+  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .chips7 { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+  .chips-auto { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip { height: 44px; padding: 0 14px; border: 2px solid var(--line); border-radius: 12px; background: var(--card); font-size: 15px; font-weight: 700; }
+  .chips .chip { padding: 0; }
+  .chips7 .chip { padding: 0; font-size: 14px; }
+  .chip-sel { border-color: var(--text); background: var(--text); color: var(--btn-text); }
 
-  .stats { display: flex; gap: 24px; margin-bottom: 8px; }
+  .primary { width: 100%; height: 54px; margin-top: 24px; border: 0; border-radius: 27px; background: var(--text); color: var(--btn-text); font-size: 17px; font-weight: 700; }
+  .primary:disabled { opacity: .35; }
+  .secondary { width: 100%; height: 50px; margin-top: 8px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--muted); }
+  .danger { width: 100%; height: 50px; margin-top: 4px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--danger); }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 16px 22px; margin-bottom: 8px; }
   .stat-num { font-size: 28px; font-weight: 800; line-height: 1; }
   .stat-cap { margin-top: 4px; font-size: 13px; color: var(--muted); }
   .month-bar { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
   .month-name { font-size: 17px; font-weight: 700; }
-  .nav { width: 44px; height: 44px; border: 0; border-radius: 50%; background: #fff; font-size: 22px; line-height: 1; }
-  .nav:disabled { opacity: .3; }
   .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .grid-dow { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 2px; }
-  .cell {
-    position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%;
-    background: transparent; font-size: 15px; font-weight: 600;
-  }
-  .cell-on { background: var(--c); color: var(--on); }
+  .cell { position: relative; aspect-ratio: 1; padding: 0; border: 2px solid transparent; border-radius: 50%; background: transparent; font-size: 15px; font-weight: 600; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .cell-on { background: var(--c); border-color: var(--c); color: var(--on); }
+  .cell-part { border-color: var(--c); border-width: 2.5px; }
+  .cell-rest { border-style: dashed; border-color: var(--muted); }
+  .cell-off { opacity: .5; }
   .cell-today { box-shadow: inset 0 0 0 2px var(--text); }
   .cell:disabled { color: var(--line); cursor: default; }
   .cell-gap { aspect-ratio: 1; }
 
-  .mark:disabled { opacity: .3; cursor: default; }
-  .group { margin: 26px 0 0; font-size: 15px; font-weight: 700; color: var(--muted); }
-  .group:first-child { margin-top: 0; }
-  .group + .habit { margin-top: 8px; }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: #E4E2F0; }
-  .seg-btn { height: 44px; border: 0; border-radius: 10px; background: transparent; font-size: 16px; font-weight: 700; color: var(--muted); }
-  .seg-sel { background: #fff; color: var(--text); }
-  .hint { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
-  .week-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
-  .week-label { min-height: 44px; padding: 0 12px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--text); }
-  .week-label:disabled { color: var(--text); cursor: default; }
-  .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-  .sheet-title-flush { margin: 0; }
-  .edit { flex: none; height: 38px; padding: 0 16px; border: 0; border-radius: 19px; background: #fff; font-size: 15px; font-weight: 700; }
-  .secondary { width: 100%; height: 50px; margin-top: 8px; border: 0; background: none; font-size: 16px; font-weight: 700; color: var(--muted); }
-
-  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .more { flex: none; width: 44px; height: 44px; margin-top: 2px; border: 0; border-radius: 50%; background: #fff; display: grid; place-items: center; }
-
-  .goal { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 14px; color: var(--muted); }
-  .goal-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
-  .goal-bar i { display: block; height: 100%; border-radius: 4px; background: var(--c); }
-  .goal-txt { flex: none; font-weight: 700; }
-  .goal-done { color: var(--text); font-weight: 700; }
-
-  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .chip { height: 44px; border: 2px solid var(--line); border-radius: 12px; background: #fff; font-size: 15px; font-weight: 700; }
-  .chip-sel { border-color: var(--text); background: var(--text); color: #fff; }
+  .notes { list-style: none; margin: 0; padding: 0; }
+  .note-item { display: block; width: 100%; padding: 10px 0; border: 0; border-top: 1.5px solid var(--line); background: none; text-align: left; }
+  .note-date { display: block; font-size: 12px; color: var(--muted); }
+  .note-text { font-size: 15px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
 
   .heat-wrap { overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
   .heat-months { display: grid; grid-template-columns: repeat(53, 12px); column-gap: 3px; height: 16px; width: max-content; font-size: 11px; color: var(--muted); }
@@ -179,25 +215,42 @@
   .heat { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 12px); grid-auto-columns: 12px; gap: 3px; width: max-content; }
   .hc { width: 12px; height: 12px; border-radius: 3px; background: var(--c); opacity: var(--o, 1); }
   .hc-0 { background: var(--line); opacity: 1; }
+  .hc-off { opacity: .45; }
   .hc-gap { background: none; }
   .heat-cap { min-height: 20px; margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+
+  .big { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 14px 0 4px; }
+  .facts p { margin: 6px 0; font-size: 15px; line-height: 1.45; }
+  .srow { margin: 14px 0; }
+  .srow-top { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; font-weight: 600; }
+  .srow-bar { height: 8px; margin-top: 6px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .srow-bar i { display: block; height: 100%; border-radius: 4px; background: var(--c); }
+  .gstats { display: grid; grid-template-columns: 1fr auto auto; gap: 8px 22px; font-size: 15px; align-items: baseline; }
+  .gstats b { font-size: 13px; color: var(--muted); text-align: right; }
+  .gstats span:not(:first-child) { text-align: right; font-weight: 700; }
 
   .awards-list { list-style: none; margin: 0; padding: 0; }
   .awards-list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1.5px solid var(--line); line-height: 1.35; }
   .trophy { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--c); display: grid; place-items: center; font-size: 20px; }
   .award-sub { font-size: 13px; color: var(--muted); }
 
+  .order-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1.5px solid var(--line); }
+  .order-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .dot { flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+  .tiny { flex: none; min-width: 44px; height: 44px; padding: 0 12px; border: 0; border-radius: 22px; background: var(--card); font-size: 15px; font-weight: 700; }
+  .tiny:disabled { opacity: .3; }
+
   .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .outline { display: grid; place-items: center; width: 100%; height: 48px; border: 2px solid var(--text); border-radius: 24px; background: transparent; color: var(--text); font-size: 16px; font-weight: 700; }
-  .area { height: auto; margin: 8px 0; padding: 12px 16px; resize: none; line-height: 1.4; }
-  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .file-btn { margin-top: 8px; }
+  .paste { margin: 8px 0; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
   .confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
   .toast {
     position: fixed; left: 20px; right: 20px; top: calc(env(safe-area-inset-top) + 12px);
     max-width: 480px; margin: 0 auto; padding: 14px 16px; border-radius: 16px;
-    background: var(--text); color: #fff; font-size: 15px; font-weight: 700; text-align: center; line-height: 1.35;
+    background: var(--text); color: var(--btn-text); font-size: 15px; font-weight: 700; text-align: center; line-height: 1.35;
     opacity: 0; transform: translateY(-14px); transition: opacity .25s, transform .25s; pointer-events: none; z-index: 60;
   }
   .toast-show { opacity: 1; transform: none; }
@@ -215,9 +268,14 @@
       <h1 class="date" id="date"></h1>
       <p class="summary" id="summary"></p>
     </div>
-    <button class="more" data-act="more" aria-label="Награды и копия данных">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-    </button>
+    <div class="top-btns">
+      <button class="round" data-act="stats" aria-label="Статистика и итоги">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="15" rx="1"/><rect x="16" y="9" width="4" height="11" rx="1"/></svg>
+      </button>
+      <button class="round" data-act="more" aria-label="Порядок, архив и копия данных">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </button>
+    </div>
   </header>
   <div class="week-bar" id="weekbar"></div>
   <div class="list" id="list"></div>
@@ -232,6 +290,9 @@
 
 <script>
 (function () {
+  'use strict';
+
+  // ---------- Константы ----------
   var PALETTE = [
     { c: '#FF5A4F', on: '#FFFFFF' },
     { c: '#FF9F1C', on: '#1D1B3A' },
@@ -243,8 +304,16 @@
     { c: '#8BD450', on: '#1D1B3A' }
   ];
   var CHECK = '<svg viewBox="0 0 24 24" width="55%" height="55%" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  var DASH = '<svg viewBox="0 0 24 24" width="55%" height="55%" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M7 12h10"/></svg>';
+  var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  var DOW_ON = ['в понедельник', 'во вторник', 'в среду', 'в четверг', 'в пятницу', 'в субботу', 'в воскресенье'];
+  var HINTS = { good: 'Отмечайте дни, когда сделали.', quit: 'Отмечайте дни, когда удержались и не сделали.' };
+  var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  var SEL = ['toggle', 'open', 'cday', 'dayopen', 'swatch', 'nav', 'week', 'kind', 'qty', 'sched', 'wd', 'n',
+    'goal', 'st', 'add', 'amt', 'sw', 'up', 'down', 'unarch', 'deli', 'hc', 'act']
+    .map(function (a) { return '[data-' + a + ']'; }).join(',');
 
-  // Хранилище: localStorage, а если он недоступен, то память страницы
+  // ---------- Состояние и хранилище ----------
   var store = (function () {
     try {
       localStorage.setItem('_t', '1'); localStorage.removeItem('_t');
@@ -255,225 +324,183 @@
     }
   })();
   var habits = [];
-  try { habits = JSON.parse(store.getItem('habits.v1') || '[]'); } catch (e) { habits = []; }
-  function save() { store.setItem('habits.v1', JSON.stringify(habits)); }
-
   var weekOffset = 0;
-  var HINTS = { good: 'Отмечайте дни, когда сделали.', quit: 'Отмечайте дни, когда удержались и не сделали.' };
-  var $ = function (s) { return document.querySelector(s); };
-  var pad = function (n) { return String(n).padStart(2, '0'); };
-  var keyOf = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
-  var cap = function (s) { return s.charAt(0).toUpperCase() + s.slice(1); };
-  var esc = function (s) {
-    return s.replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  };
-  var col = function (h) { return PALETTE[h.color % PALETTE.length]; };
-  var style = function (p) { return '--c:' + p.c + ';--on:' + p.on; };
-
-  function streak(h) {
-    var d = new Date();
-    if (!h.done[keyOf(d)]) d.setDate(d.getDate() - 1);
-    var n = 0;
-    while (h.done[keyOf(d)]) { n++; d.setDate(d.getDate() - 1); }
-    return n;
-  }
-
-  // ---------- Главный экран ----------
-  function render() {
-    var now = new Date();
-    $('#date').textContent = cap(now.toLocaleDateString('ru', { weekday: 'long', day: 'numeric', month: 'long' }));
-    var tk = keyOf(now);
-    var doneToday = habits.filter(function (h) { return h.done[tk]; }).length;
-    $('#summary').textContent = habits.length ? 'Сегодня отмечено ' + doneToday + ' из ' + habits.length : '';
-
-    var mondayShift = (now.getDay() + 6) % 7;
-    var days = [];
-    for (var i = 0; i < 7; i++) days.push(new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayShift + weekOffset * 7 + i));
-
-    var wb = $('#weekbar');
-    if (habits.length) {
-      var fmt = function (d) { return d.toLocaleDateString('ru', { day: 'numeric', month: 'short' }).replace('.', ''); };
-      var label = weekOffset === 0 ? 'Эта неделя' : fmt(days[0]) + ' – ' + fmt(days[6]);
-      wb.innerHTML = '<button class="nav" data-week="-1" aria-label="Предыдущая неделя">‹</button>' +
-        '<button class="week-label" data-week="0"' + (weekOffset === 0 ? ' disabled' : '') + '>' + label + '</button>' +
-        '<button class="nav" data-week="1" aria-label="Следующая неделя"' + (weekOffset >= 0 ? ' disabled' : '') + '>›</button>';
-    } else {
-      wb.innerHTML = '';
-    }
-
-    if (!habits.length) {
-      $('#list').innerHTML = '<div class="empty">Привычек пока нет. Нажмите «Новая привычка», выберите тип и цвет: каждый удачный день закрасит кружок.</div>';
-      return;
-    }
-    var habitHtml = function (h) {
-      var s = streak(h);
-      var marks = days.map(function (d) {
-        var k = keyOf(d), on = !!h.done[k];
-        var future = d > now && k !== tk;
-        var dow = d.toLocaleDateString('ru', { weekday: 'short' });
-        return '<div class="day">' +
-          '<span class="dow' + (k === tk ? ' dow-today' : '') + '">' + dow + '</span>' +
-          '<button class="mark' + (on ? ' mark-on' : '') + '" data-toggle="' + h.id + '" data-day="' + k + '"' +
-          (future ? ' disabled' : '') + ' aria-pressed="' + on + '" aria-label="' + esc(h.name) + ', ' + d.toLocaleDateString('ru', { day: 'numeric', month: 'long' }) + '">' + CHECK + '</button>' +
-          '</div>';
-      }).join('');
-      return '<section class="habit" style="' + style(col(h)) + '">' +
-        '<div class="habit-head">' +
-        '<button class="habit-name" data-open="' + h.id + '">' + esc(h.name) + '</button>' +
-        '<span class="streak' + (s ? ' streak-on' : '') + '">🔥 ' + s + ' дн.</span>' +
-        '</div><div class="week">' + marks + '</div>' + goalHtml(h) + '</section>';
-    };
-    var groups = [['good', 'Полезные привычки'], ['quit', 'Отказаться']];
-    $('#list').innerHTML = groups.map(function (g) {
-      var items = habits.filter(function (h) { return (h.kind || 'good') === g[0]; });
-      if (!items.length) return '';
-      return '<h2 class="group">' + g[1] + '</h2>' + items.map(habitHtml).join('');
-    }).join('');
-  }
-
-  function toggle(id, key) {
-    var h = habits.find(function (x) { return x.id === id; });
-    if (!h) return;
-    if (h.done[key]) delete h.done[key]; else h.done[key] = 1;
-    if (h.done[key]) checkGoal(h);
-    save();
-    render();
-    if (state && state.type === 'detail' && state.id === id) renderSheet();
-    if (h.done[key]) {
-      var el = document.querySelector('[data-toggle="' + id + '"][data-day="' + key + '"]');
-      if (el) el.classList.add('mark-pop');
-    }
-  }
-
-  // ---------- Нижняя шторка ----------
   var state = null;
   var sheet = $('#sheet'), backdrop = $('#backdrop');
 
-  function openSheet() { backdrop.classList.add('backdrop-open'); sheet.classList.add('sheet-open'); }
-  function closeSheet() { backdrop.classList.remove('backdrop-open'); sheet.classList.remove('sheet-open'); state = null; }
+  function $(s) { return document.querySelector(s); }
+  function save() { store.setItem('habits.v1', JSON.stringify(habits)); }
 
-  function renderSheet() {
-    if (!state) return;
-    if (state.type === 'add' || state.type === 'edit') {
-      var editing = state.type === 'edit';
-      var eh = editing ? habits.find(function (x) { return x.id === state.id; }) : null;
-      if (editing && !eh) { closeSheet(); return; }
-      var ttl = editing ? 'Изменить привычку' : 'Новая привычка';
-      sheet.setAttribute('aria-label', ttl);
-      sheet.innerHTML =
-        '<h2 class="sheet-title">' + ttl + '</h2>' +
-        '<input class="field" id="name" type="text" maxlength="40" placeholder="Например, Пить воду" autocomplete="off" aria-label="Название привычки" value="' + (editing ? esc(eh.name) : '') + '">' +
-        '<span class="label">Тип</span>' +
-        '<div class="seg" role="radiogroup" aria-label="Тип привычки">' +
-        '<button class="seg-btn' + (state.kind === 'good' ? ' seg-sel' : '') + '" data-kind="good" role="radio" aria-checked="' + (state.kind === 'good') + '">Полезная</button>' +
-        '<button class="seg-btn' + (state.kind === 'quit' ? ' seg-sel' : '') + '" data-kind="quit" role="radio" aria-checked="' + (state.kind === 'quit') + '">Отказаться</button>' +
-        '</div>' +
-        '<p class="hint" id="hint">' + HINTS[state.kind] + '</p>' +
-        '<span class="label">Цвет отметок</span>' +
-        '<div class="swatches" role="radiogroup" aria-label="Цвет">' +
-        PALETTE.map(function (p, i) {
-          return '<button class="swatch' + (i === state.color ? ' swatch-sel' : '') + '" style="' + style(p) + '" data-swatch="' + i + '" role="radio" aria-checked="' + (i === state.color) + '" aria-label="Цвет ' + (i + 1) + '">' + CHECK + '</button>';
-        }).join('') +
-        '</div>' +
-        (function () {
-          var list = [0, 7, 21, 30, 66, 100];
-          if (state.goal && list.indexOf(state.goal) < 0) { list.push(state.goal); list.sort(function (a, b) { return a - b; }); }
-          return '<span class="label">Цель</span>' +
-            '<div class="chips" role="radiogroup" aria-label="Цель в днях подряд">' + list.map(function (n) {
-              return '<button class="chip' + (state.goal === n ? ' chip-sel' : '') + '" data-goal="' + n + '" role="radio" aria-checked="' + (state.goal === n) + '">' + (n ? n + ' дн.' : 'Без цели') + '</button>';
-            }).join('') + '</div>' +
-            '<p class="hint">Сколько дней подряд нужно продержаться.</p>';
-        })() +
-        '<button class="primary" data-act="' + (editing ? 'save' : 'create') + '" id="create"' + (editing ? '' : ' disabled') + '>' + (editing ? 'Сохранить' : 'Добавить') + '</button>' +
-        (editing ? '<button class="secondary" data-act="back">Отмена</button>' : '');
-    } else if (state.type === 'more') {
-      renderMore();
-    } else {
-      var h = habits.find(function (x) { return x.id === state.id; });
-      if (!h) { closeSheet(); return; }
-      var y = state.y, m = state.m, now = new Date(), tk = keyOf(now);
-      var prefix = y + '-' + pad(m + 1);
-      var monthCount = Object.keys(h.done).filter(function (k) { return k.indexOf(prefix) === 0; }).length;
-      var offset = (new Date(y, m, 1).getDay() + 6) % 7;
-      var dim = new Date(y, m + 1, 0).getDate();
-      var isCurrent = y === now.getFullYear() && m === now.getMonth();
-      var cells = '';
-      for (var i = 0; i < offset; i++) cells += '<div class="cell-gap"></div>';
-      for (var d = 1; d <= dim; d++) {
-        var dt = new Date(y, m, d), k = keyOf(dt), on = !!h.done[k];
-        var future = dt > now && k !== tk;
-        cells += '<button class="cell' + (on ? ' cell-on' : '') + (k === tk ? ' cell-today' : '') + '" data-cday="' + k + '"' + (future ? ' disabled' : '') + ' aria-pressed="' + on + '">' + d + '</button>';
-      }
-      var dows = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map(function (x) { return '<div class="grid-dow">' + x + '</div>'; }).join('');
-      sheet.setAttribute('aria-label', h.name);
-      sheet.setAttribute('style', style(col(h)));
-      sheet.innerHTML =
-        '<div class="sheet-head"><h2 class="sheet-title sheet-title-flush">' + esc(h.name) + '</h2><button class="edit" data-act="edit">Изменить</button></div>' +
-        '<div class="stats">' +
-        '<div><div class="stat-num">' + streak(h) + '</div><div class="stat-cap">серия, дн.</div></div>' +
-        '<div><div class="stat-num">' + monthCount + '</div><div class="stat-cap">в этом месяце</div></div>' +
-        '<div><div class="stat-num">' + Object.keys(h.done).length + '</div><div class="stat-cap">всего</div></div>' +
-        '</div>' +
-        goalHtml(h) + awardsHtml(h) +
-        '<div class="month-bar">' +
-        '<button class="nav" data-nav="-1" aria-label="Предыдущий месяц">‹</button>' +
-        '<span class="month-name">' + cap(new Date(y, m, 1).toLocaleDateString('ru', { month: 'long', year: 'numeric' }).replace(' г.', '')) + '</span>' +
-        '<button class="nav" data-nav="1" aria-label="Следующий месяц"' + (isCurrent ? ' disabled' : '') + '>›</button>' +
-        '</div>' +
-        '<div class="grid">' + dows + cells + '</div>' +
-        '<span class="label">Весь год</span>' + habitHeat(h) +
-        '<button class="danger" data-act="delete">Удалить привычку</button>';
+  // ---------- Утилиты ----------
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function keyOf(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseKey(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function wd(d) { return (d.getDay() + 6) % 7; }
+  function mondayOf(d) { return addDays(d, -wd(d)); }
+  function today0() { var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function num(v) { return String(Math.round(v * 100) / 100); }
+  function fmt(v) { return num(v).replace('.', ','); }
+  function col(h) { return PALETTE[h.color % PALETTE.length]; }
+  function style(p) { return '--c:' + p.c + ';--on:' + p.on; }
+  function byId(id) { return habits.find(function (x) { return x.id === id; }); }
+  function active() { return habits.filter(function (h) { return !h.archived; }); }
+  function longDate(d, o) { return d.toLocaleDateString('ru', o); }
+
+  // ---------- Модель привычки ----------
+  function isQty(h) { return h.target > 0; }
+  function amount(h, k) { return +h.done[k] || 0; }
+  function isDone(h, k) { return isQty(h) ? amount(h, k) >= h.target : !!h.done[k]; }
+  function isSched(h, d, k) {
+    if (h.sched.type === 'weekly') return false;
+    if (k < h.created) return false;
+    if (h.sched.type === 'days') return h.sched.days.indexOf(wd(d)) >= 0;
+    return true;
+  }
+  function unitOf(h) { return h.sched.type === 'weekly' ? 'нед.' : 'дн.'; }
+  function touch(h, k) { if (k < h.created) h.created = k; }
+
+  function deriveCreated(h) {
+    var c = [];
+    var m = /^h(\d{12,14})$/.exec(h.id);
+    if (m) {
+      var ms = +m[1];
+      if (ms > 1577836800000 && ms < Date.now() + 864e5) c.push(keyOf(new Date(ms)));
     }
-    var hw = sheet.querySelector('.heat-wrap');
-    if (hw) hw.scrollLeft = hw.scrollWidth;
+    [h.done, h.rest, h.notes].forEach(function (o) { Object.keys(o || {}).forEach(function (k) { c.push(k); }); });
+    if (!c.length) return keyOf(new Date());
+    c.sort();
+    return c[0];
   }
 
-  function openAdd() {
-    state = { type: 'add', color: 3, kind: 'good', goal: 0 };
-    sheet.removeAttribute('style');
-    renderSheet(); openSheet();
-    setTimeout(function () { var n = $('#name'); if (n) n.focus(); }, 50);
+  function sanitize(h, seen) {
+    var id = String(h.id || '').replace(/[^\w-]/g, '');
+    if (!id || seen[id]) id = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    seen[id] = 1;
+    var kind = h.kind === 'quit' ? 'quit' : 'good';
+    var target = (kind === 'good' && +h.target > 0) ? Math.min(1000000, Math.round(+h.target * 100) / 100) : 0;
+    var done = {}, rest = {}, notes = {};
+    if (h.done && typeof h.done === 'object') {
+      Object.keys(h.done).forEach(function (k) {
+        if (!DATE_RE.test(k)) return;
+        var v = h.done[k];
+        if (target) { var a = +v; if (a > 0 && isFinite(a)) done[k] = Math.min(10000000, Math.round(a * 100) / 100); }
+        else if (v) done[k] = 1;
+      });
+    }
+    if (h.rest && typeof h.rest === 'object') {
+      Object.keys(h.rest).forEach(function (k) { if (DATE_RE.test(k) && h.rest[k]) rest[k] = 1; });
+    }
+    if (h.notes && typeof h.notes === 'object') {
+      Object.keys(h.notes).forEach(function (k) {
+        if (DATE_RE.test(k) && typeof h.notes[k] === 'string' && h.notes[k].trim()) notes[k] = h.notes[k].slice(0, 300);
+      });
+    }
+    var sched = { type: 'daily' };
+    if (h.sched && h.sched.type === 'days' && Array.isArray(h.sched.days)) {
+      var ds = [];
+      h.sched.days.forEach(function (x) { var v = parseInt(x, 10); if (v >= 0 && v <= 6 && ds.indexOf(v) < 0) ds.push(v); });
+      ds.sort(function (a, b) { return a - b; });
+      if (ds.length && ds.length < 7) sched = { type: 'days', days: ds };
+    } else if (h.sched && h.sched.type === 'weekly') {
+      var n = Math.round(+h.sched.n);
+      if (n >= 1 && n <= 7) sched = { type: 'weekly', n: n };
+    }
+    var goal = null;
+    if (h.goal && +h.goal.days > 0) {
+      goal = { days: Math.min(3650, Math.round(+h.goal.days)), reachedAt: DATE_RE.test(h.goal.reachedAt) ? h.goal.reachedAt : null };
+    }
+    var awards = Array.isArray(h.awards) ? h.awards.filter(function (a) {
+      return a && +a.days > 0 && DATE_RE.test(a.date);
+    }).map(function (a) { return { days: Math.round(+a.days), date: a.date }; }) : [];
+    var out = {
+      id: id,
+      name: String(h.name).trim().slice(0, 40),
+      color: (Math.abs(parseInt(h.color, 10)) || 0) % PALETTE.length,
+      kind: kind,
+      sched: sched,
+      target: target,
+      unit: target ? String(h.unit || '').slice(0, 14) : '',
+      why: String(h.why || '').slice(0, 120),
+      goal: goal, awards: awards,
+      done: done, rest: rest, notes: notes,
+      archived: !!h.archived,
+      created: DATE_RE.test(h.created) ? h.created : null
+    };
+    if (!out.created) out.created = deriveCreated(out);
+    return out;
   }
-  function openDetail(id) {
-    var now = new Date();
-    state = { type: 'detail', id: id, y: now.getFullYear(), m: now.getMonth() };
-    renderSheet(); openSheet();
+  function cleanList(list) {
+    var seen = {};
+    return list.filter(function (h) { return h && typeof h.name === 'string' && h.name.trim(); })
+      .map(function (h) { return sanitize(h, seen); });
   }
-  function create() {
-    var n = $('#name');
-    var name = n ? n.value.trim() : '';
-    if (!name) return;
-    habits.push({ id: 'h' + Date.now(), name: name, color: state.color, kind: state.kind, goal: state.goal ? { days: state.goal, reachedAt: null } : null, awards: [], done: {} });
-    save(); closeSheet(); render();
+  function load() {
+    var raw;
+    try { raw = JSON.parse(store.getItem('habits.v1') || '[]'); } catch (e) { raw = []; }
+    return Array.isArray(raw) ? cleanList(raw) : [];
   }
 
-  function startEdit() {
-    var h = habits.find(function (x) { return x.id === state.id; });
-    if (!h) return;
-    state = { type: 'edit', id: h.id, color: h.color % PALETTE.length, kind: h.kind || 'good', goal: h.goal ? h.goal.days : 0, y: state.y, m: state.m };
-    sheet.removeAttribute('style');
-    renderSheet();
+  // ---------- Серии ----------
+  function weekDone(h, mon) {
+    var done = 0, rest = 0;
+    for (var i = 0; i < 7; i++) {
+      var k = keyOf(addDays(mon, i));
+      if (h.rest[k]) rest++;
+      else if (isDone(h, k)) done++;
+    }
+    return { done: done, req: Math.max(1, Math.min(h.sched.n, 7 - rest)) };
   }
-  function backToDetail() {
-    state = { type: 'detail', id: state.id, y: state.y, m: state.m };
-    renderSheet();
+  function streak(h) {
+    var t = today0(), tk = keyOf(t), n = 0, i, d;
+    if (h.sched.type === 'weekly') {
+      var mon = mondayOf(t);
+      for (i = 0; i < 600; i++, mon = addDays(mon, -7)) {
+        var w = weekDone(h, mon);
+        if (w.done >= w.req) n++;
+        else if (i === 0) continue;
+        else break;
+      }
+      return n;
+    }
+    for (i = 0, d = t; i < 4000; i++, d = addDays(d, -1)) {
+      var k = keyOf(d);
+      if (k < h.created) break;
+      if (h.rest[k] || !isSched(h, d, k)) continue;
+      if (isDone(h, k)) n++;
+      else if (k === tk) continue;
+      else break;
+    }
+    return n;
   }
-  function saveEdit() {
-    var h = habits.find(function (x) { return x.id === state.id; });
-    var n = $('#name');
-    var name = n ? n.value.trim() : '';
-    if (!h || !name) return;
-    h.name = name; h.color = state.color; h.kind = state.kind;
-    if (!state.goal) h.goal = null;
-    else if (!h.goal || h.goal.days !== state.goal) h.goal = { days: state.goal, reachedAt: null };
-    checkGoal(h, true);
-    save(); render(); backToDetail();
+  function bestStreak(h) {
+    var t = today0(), tk = keyOf(t), cur = 0, best = 0, d, k;
+    if (h.sched.type === 'weekly') {
+      var mon = mondayOf(parseKey(h.created)), cm = mondayOf(t);
+      while (mon <= cm) {
+        var w = weekDone(h, mon);
+        if (w.done >= w.req) { cur++; if (cur > best) best = cur; }
+        else if (keyOf(mon) !== keyOf(cm)) cur = 0;
+        mon = addDays(mon, 7);
+      }
+      return best;
+    }
+    for (d = parseKey(h.created); keyOf(d) <= tk; d = addDays(d, 1)) {
+      k = keyOf(d);
+      if (h.rest[k] || !isSched(h, d, k)) continue;
+      if (isDone(h, k)) { cur++; if (cur > best) best = cur; }
+      else if (k !== tk) cur = 0;
+    }
+    return best;
   }
 
-  // ---------- Цели, награды, тепловая карта ----------
-  var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  // ---------- Цели и награды ----------
   var toastTimer;
   function toast(msg) {
     var t = $('#toast');
@@ -512,14 +539,13 @@
     })(t0);
   }
   function celebrate(h) {
-    toast('🏆 Цель достигнута: ' + h.name + ', ' + h.goal.days + ' дн. подряд');
+    toast('🏆 Цель достигнута: ' + h.name + ', ' + h.goal.days + ' ' + unitOf(h) + ' подряд');
     if (!reduceMotion()) confetti();
   }
   function checkGoal(h, silent) {
     if (!h.goal || h.goal.reachedAt) return;
     if (streak(h) >= h.goal.days) {
       h.goal.reachedAt = keyOf(new Date());
-      if (!h.awards) h.awards = [];
       h.awards.push({ days: h.goal.days, date: h.goal.reachedAt });
       if (!silent) celebrate(h);
     }
@@ -527,35 +553,551 @@
   function goalHtml(h) {
     if (!h.goal) return '';
     var gd = h.goal.days;
-    if (h.goal.reachedAt) return '<div class="goal goal-done">🏆 Цель достигнута: ' + gd + ' дн. подряд</div>';
+    if (h.goal.reachedAt) return '<div class="goal goal-done">🏆 Цель достигнута: ' + gd + ' ' + unitOf(h) + ' подряд</div>';
     var s = streak(h);
     return '<div class="goal"><div class="goal-bar"><i style="width:' + Math.min(100, Math.round(s / gd * 100)) + '%"></i></div>' +
-      '<span class="goal-txt">' + s + ' из ' + gd + ' дн.</span></div>';
+      '<span class="goal-txt">' + s + ' из ' + gd + ' ' + unitOf(h) + '</span></div>';
   }
   function awardsHtml(h) {
-    if (!h.awards || !h.awards.length) return '';
-    return '<p class="hint">Награды: ' + h.awards.map(function (a) { return '🏆 ' + a.days + ' дн.'; }).join(', ') + '</p>';
+    if (!h.awards.length) return '';
+    return '<p class="hint">Награды: ' + h.awards.map(function (a) { return '🏆 ' + a.days + ' ' + unitOf(h); }).join(', ') + '</p>';
   }
 
+  // ---------- Подписи ----------
+  function describe(h) {
+    var parts = [];
+    if (h.sched.type === 'days') parts.push(h.sched.days.map(function (i) { return DOW[i]; }).join(', '));
+    else if (h.sched.type === 'weekly') parts.push(h.sched.n + (h.sched.n >= 2 && h.sched.n <= 4 ? ' раза' : ' раз') + ' в неделю');
+    else parts.push('Каждый день');
+    if (isQty(h)) parts.push(fmt(h.target) + (h.unit ? ' ' + h.unit : '') + ' в день');
+    return parts.join(', ');
+  }
+  function habitSub(h) {
+    var tk = keyOf(today0()), parts = [];
+    if (h.sched.type === 'days') parts.push(h.sched.days.map(function (i) { return DOW[i]; }).join(', '));
+    if (h.sched.type === 'weekly') {
+      var w = weekDone(h, mondayOf(today0()));
+      parts.push('На этой неделе: ' + w.done + ' из ' + w.req);
+    }
+    if (isQty(h)) {
+      var a = amount(h, tk), u = h.unit ? ' ' + h.unit : '';
+      parts.push(a > 0 ? 'Сегодня: ' + fmt(a) + ' из ' + fmt(h.target) + u : 'Цель: ' + fmt(h.target) + u + ' в день');
+    }
+    return parts.join('. ');
+  }
+  function whyLine(h) {
+    if (!h.why) return '';
+    var t = today0(), tk = keyOf(t);
+    if (h.rest[tk] || isDone(h, tk)) return '';
+    var yk = keyOf(addDays(t, -1));
+    var slip = h.sched.type !== 'weekly' && yk >= h.created && isSched(h, addDays(t, -1), yk) && !h.rest[yk] && !isDone(h, yk);
+    var risk = h.sched.type !== 'weekly' && isSched(h, t, tk) && streak(h) > 0 && new Date().getHours() >= 18;
+    if (!slip && !risk) return '';
+    return '<p class="why">' + (slip ? 'Вчера не вышло. ' : 'Серия под угрозой. ') + 'Зачем это: ' + esc(h.why) + '</p>';
+  }
+
+  // ---------- Главный экран ----------
+  function markHtml(h, d, k, tk) {
+    var future = k > tk, rest = !!h.rest[k], done = isDone(h, k);
+    var amt = amount(h, k), part = isQty(h) && !done && amt > 0;
+    var off = h.sched.type === 'days' && !rest && !isSched(h, d, k);
+    var cls = 'mark' + (done ? ' mark-on' : '') + (part ? ' mark-part' : '') + (rest ? ' mark-rest' : '') +
+      (off ? ' mark-off' : '') + (h.notes[k] ? ' has-note' : '');
+    var st = rest ? 'день отдыха' : done ? 'выполнено' : part ? 'частично' : 'не отмечено';
+    return '<button class="' + cls + '"' + (part ? ' style="--p:' + Math.round(amt / h.target * 100) + '"' : '') +
+      ' data-toggle="' + h.id + '" data-day="' + k + '"' + (future ? ' disabled' : '') +
+      ' aria-label="' + esc(h.name) + ', ' + longDate(d, { day: 'numeric', month: 'long' }) + ', ' + st + '">' +
+      (rest ? DASH : CHECK) + '</button>';
+  }
+  function habitHtml(h, days, tk) {
+    var s = streak(h);
+    var marks = days.map(function (d) {
+      var k = keyOf(d);
+      return '<div class="day"><span class="dow' + (k === tk ? ' dow-today' : '') + '">' + longDate(d, { weekday: 'short' }) + '</span>' +
+        markHtml(h, d, k, tk) + '</div>';
+    }).join('');
+    var sub = habitSub(h);
+    return '<section class="habit" style="' + style(col(h)) + '">' +
+      '<div class="habit-head"><div class="habit-title"><button class="habit-name" data-open="' + h.id + '">' + esc(h.name) + '</button>' +
+      (sub ? '<span class="habit-sub">' + esc(sub) + '</span>' : '') + '</div>' +
+      '<span class="streak' + (s ? ' streak-on' : '') + '">🔥 ' + s + ' ' + unitOf(h) + '</span></div>' +
+      '<div class="week">' + marks + '</div>' + goalHtml(h) + whyLine(h) + '</section>';
+  }
+  function todayCounts() {
+    var t = today0(), tk = keyOf(t), x = 0, y = 0;
+    active().forEach(function (h) {
+      if (h.rest[tk]) return;
+      var done = isDone(h, tk), planned;
+      if (h.sched.type === 'weekly') { var w = weekDone(h, mondayOf(t)); planned = done || w.done < w.req; }
+      else planned = isSched(h, t, tk);
+      if (!planned) return;
+      y++; if (done) x++;
+    });
+    return { x: x, y: y };
+  }
+  function render() {
+    var now = today0(), tk = keyOf(now), list = active();
+    $('#date').textContent = cap(longDate(now, { weekday: 'long', day: 'numeric', month: 'long' }));
+    var c = todayCounts();
+    $('#summary').textContent = !list.length ? '' : c.y ? 'Сегодня отмечено ' + c.x + ' из ' + c.y : 'На сегодня ничего не запланировано';
+
+    var days = [];
+    for (var i = 0; i < 7; i++) days.push(addDays(mondayOf(now), weekOffset * 7 + i));
+
+    var wb = $('#weekbar');
+    if (list.length) {
+      var fmtD = function (d) { return longDate(d, { day: 'numeric', month: 'short' }).replace('.', ''); };
+      var label = weekOffset === 0 ? 'Эта неделя' : fmtD(days[0]) + ' – ' + fmtD(days[6]);
+      wb.innerHTML = '<button class="nav" data-week="-1" aria-label="Предыдущая неделя">‹</button>' +
+        '<button class="week-label" data-week="0"' + (weekOffset === 0 ? ' disabled' : '') + '>' + label + '</button>' +
+        '<button class="nav" data-week="1" aria-label="Следующая неделя"' + (weekOffset >= 0 ? ' disabled' : '') + '>›</button>';
+    } else {
+      wb.innerHTML = '';
+    }
+
+    if (!list.length) {
+      $('#list').innerHTML = '<div class="empty">Привычек пока нет. Нажмите «Новая привычка», выберите тип и цвет: каждый удачный день закрасит кружок.</div>';
+      return;
+    }
+    var groups = [['good', 'Полезные привычки'], ['quit', 'Отказаться']];
+    $('#list').innerHTML = groups.map(function (g) {
+      var items = list.filter(function (h) { return h.kind === g[0]; });
+      if (!items.length) return '';
+      return '<h2 class="group">' + g[1] + '</h2>' + items.map(function (h) { return habitHtml(h, days, tk); }).join('');
+    }).join('') + '<p class="tip">Подсказка: удерживайте кружок, чтобы добавить заметку или отметить день отдыха.</p>';
+  }
+
+  function toggle(id, key) {
+    var h = byId(id);
+    if (!h || key > keyOf(today0())) return;
+    touch(h, key);
+    if (h.rest[key]) { delete h.rest[key]; h.done[key] = 1; }
+    else if (h.done[key]) delete h.done[key];
+    else h.done[key] = 1;
+    if (isDone(h, key)) checkGoal(h);
+    save();
+    render();
+    if (state && state.type === 'detail' && state.id === id) renderSheet();
+    if (isDone(h, key)) {
+      var el = document.querySelector('[data-toggle="' + id + '"][data-day="' + key + '"]');
+      if (el) el.classList.add('mark-pop');
+    }
+  }
+
+  // ---------- Шторка ----------
+  function openSheet() { backdrop.classList.add('backdrop-open'); sheet.classList.add('sheet-open'); }
+  function closeSheet() { backdrop.classList.remove('backdrop-open'); sheet.classList.remove('sheet-open'); state = null; }
+  function show(s) { state = s; renderSheet(); sheet.scrollTop = 0; openSheet(); }
+  function keepScroll() { var top = sheet.scrollTop; renderSheet(); sheet.scrollTop = top; }
+
+  function renderSheet() {
+    if (!state) return;
+    sheet.removeAttribute('style');
+    switch (state.type) {
+      case 'add': case 'edit': renderForm(); break;
+      case 'detail': renderDetail(); break;
+      case 'day': renderDay(); break;
+      case 'stats': renderStats(); break;
+      case 'more': renderMore(); break;
+    }
+    var hw = sheet.querySelector('.heat-wrap');
+    if (hw) hw.scrollLeft = hw.scrollWidth;
+  }
+
+  function segHtml(attr, opts, sel, label) {
+    return '<div class="seg" style="grid-template-columns:repeat(' + opts.length + ',1fr)" role="radiogroup" aria-label="' + label + '">' +
+      opts.map(function (o) {
+        var on = String(sel) === o[0];
+        return '<button class="seg-btn' + (on ? ' seg-sel' : '') + '" ' + attr + '="' + o[0] + '" role="radio" aria-checked="' + on + '">' + o[1] + '</button>';
+      }).join('') + '</div>';
+  }
+
+  // ----- Форма: новая и изменение -----
+  function baseGoals() { return state.sched === 'weekly' ? [0, 2, 4, 8, 12, 26] : [0, 7, 21, 30, 66, 100]; }
+  function newFormState() {
+    return { type: 'add', name: '', kind: 'good', color: 3, goal: 0, sched: 'daily', days: [0, 1, 2, 3, 4], n: 3,
+      qty: false, target: '', unit: '', why: '' };
+  }
+  function readForm() {
+    var map = { name: 'name', why: 'why', target: 'target', unit: 'unit' };
+    Object.keys(map).forEach(function (f) {
+      var e = $('#' + map[f]);
+      if (e && typeof e.value === 'string') state[f] = e.value;
+    });
+  }
+  function refreshForm() { readForm(); keepScroll(); }
+
+  function renderForm() {
+    var editing = state.type === 'edit';
+    var ttl = editing ? 'Изменить привычку' : 'Новая привычка';
+    var good = state.kind === 'good';
+    var weekly = state.sched === 'weekly';
+    sheet.setAttribute('aria-label', ttl);
+    var html = '<h2 class="sheet-title">' + ttl + '</h2>' +
+      '<input class="field" id="name" type="text" maxlength="40" placeholder="Например, Пить воду" autocomplete="off" aria-label="Название привычки" value="' + esc(state.name) + '">' +
+      '<span class="label">Тип</span>' +
+      segHtml('data-kind', [['good', 'Полезная'], ['quit', 'Отказаться']], state.kind, 'Тип привычки') +
+      '<p class="hint" id="hint">' + HINTS[state.kind] + '</p>';
+    if (good) {
+      html += '<span class="label">Отметка</span>' +
+        segHtml('data-qty', [['0', 'Галочка'], ['1', 'Количество']], state.qty ? '1' : '0', 'Способ отметки');
+      if (state.qty) {
+        html += '<div class="qty-row">' +
+          '<input class="field" id="target" type="number" inputmode="decimal" min="0" step="any" placeholder="Сколько в день" aria-label="Цель на день" value="' + esc(state.target) + '">' +
+          '<input class="field" id="unit" type="text" maxlength="14" placeholder="Что считаем" aria-label="Единица измерения" value="' + esc(state.unit) + '"></div>' +
+          '<p class="hint">Например, 8 стаканов или 10000 шагов. Кружок закрасится, когда цель дня выполнена.</p>';
+      }
+    }
+    html += '<span class="label">Расписание</span>' +
+      segHtml('data-sched', [['daily', 'Каждый день'], ['days', 'По дням'], ['weekly', 'Раз в неделю']], state.sched, 'Расписание');
+    if (state.sched === 'days') {
+      html += '<div class="chips7" role="group" aria-label="Дни недели">' + DOW.map(function (n, i) {
+        var on = state.days.indexOf(i) >= 0;
+        return '<button class="chip' + (on ? ' chip-sel' : '') + '" data-wd="' + i + '" aria-pressed="' + on + '">' + n + '</button>';
+      }).join('') + '</div><p class="hint">В остальные дни серия не прерывается.</p>';
+    } else if (weekly) {
+      html += '<div class="chips7" role="radiogroup" aria-label="Сколько раз в неделю">' + [1, 2, 3, 4, 5, 6, 7].map(function (n) {
+        var on = state.n === n;
+        return '<button class="chip' + (on ? ' chip-sel' : '') + '" data-n="' + n + '" role="radio" aria-checked="' + on + '">' + n + '</button>';
+      }).join('') + '</div><p class="hint">Сколько раз в неделю нужно выполнить. Серия считается неделями.</p>';
+    }
+    html += '<span class="label">Цвет отметок</span><div class="swatches" role="radiogroup" aria-label="Цвет">' +
+      PALETTE.map(function (p, i) {
+        var on = i === state.color;
+        return '<button class="swatch' + (on ? ' swatch-sel' : '') + '" style="' + style(p) + '" data-swatch="' + i + '" role="radio" aria-checked="' + on + '" aria-label="Цвет ' + (i + 1) + '">' + CHECK + '</button>';
+      }).join('') + '</div>';
+    var goals = baseGoals();
+    if (state.goal && goals.indexOf(state.goal) < 0) { goals.push(state.goal); goals.sort(function (a, b) { return a - b; }); }
+    html += '<span class="label">Цель</span><div class="chips" role="radiogroup" aria-label="Цель подряд">' + goals.map(function (n) {
+      var on = state.goal === n;
+      return '<button class="chip' + (on ? ' chip-sel' : '') + '" data-goal="' + n + '" role="radio" aria-checked="' + on + '">' + (n ? n + ' ' + (weekly ? 'нед.' : 'дн.') : 'Без цели') + '</button>';
+    }).join('') + '</div><p class="hint">Сколько ' + (weekly ? 'недель' : 'дней') + ' подряд нужно продержаться.</p>' +
+      '<span class="label">Зачем мне это</span>' +
+      '<textarea class="field area" id="why" rows="2" maxlength="120" placeholder="Напомню об этом, когда серия под угрозой" aria-label="Зачем мне эта привычка">' + esc(state.why) + '</textarea>' +
+      '<button class="primary" data-act="' + (editing ? 'save' : 'create') + '" id="create"' + (state.name.trim() ? '' : ' disabled') + '>' + (editing ? 'Сохранить' : 'Добавить') + '</button>' +
+      (editing ? '<button class="secondary" data-act="back">Отмена</button>' : '');
+    sheet.innerHTML = html;
+  }
+
+  function validateForm() {
+    readForm();
+    var name = state.name.trim();
+    if (!name) { toast('Введите название.'); return null; }
+    var qty = state.kind === 'good' && state.qty, target = 0;
+    if (qty) {
+      target = parseFloat(String(state.target).replace(',', '.'));
+      if (!(target > 0)) { toast('Укажите, сколько нужно в день.'); return null; }
+      target = Math.min(1000000, Math.round(target * 100) / 100);
+    }
+    var sched = { type: 'daily' };
+    if (state.sched === 'days') {
+      if (!state.days.length) { toast('Выберите хотя бы один день недели.'); return null; }
+      if (state.days.length < 7) sched = { type: 'days', days: state.days.slice().sort(function (a, b) { return a - b; }) };
+    } else if (state.sched === 'weekly') {
+      sched = { type: 'weekly', n: state.n };
+    }
+    return { name: name.slice(0, 40), kind: state.kind, color: state.color, sched: sched, target: target,
+      unit: qty ? state.unit.trim().slice(0, 14) : '', why: state.why.trim().slice(0, 120), goal: state.goal };
+  }
+  function create() {
+    var v = validateForm();
+    if (!v) return;
+    habits.push(sanitize({
+      id: 'h' + Date.now(), name: v.name, kind: v.kind, color: v.color, sched: v.sched, target: v.target, unit: v.unit, why: v.why,
+      goal: v.goal ? { days: v.goal, reachedAt: null } : null, awards: [], done: {}, rest: {}, notes: {},
+      archived: false, created: keyOf(new Date())
+    }, {}));
+    save(); closeSheet(); render();
+  }
+  function startEdit() {
+    var h = byId(state.id);
+    if (!h) return;
+    show({ type: 'edit', id: h.id, y: state.y, m: state.m, name: h.name, kind: h.kind, color: h.color,
+      goal: h.goal ? h.goal.days : 0, sched: h.sched.type, days: h.sched.days ? h.sched.days.slice() : [0, 1, 2, 3, 4],
+      n: h.sched.n || 3, qty: isQty(h), target: h.target ? num(h.target) : '', unit: h.unit, why: h.why });
+  }
+  function saveEdit() {
+    var h = byId(state.id), v = validateForm();
+    if (!h || !v) return;
+    h.name = v.name; h.kind = v.kind; h.color = v.color; h.sched = v.sched;
+    h.target = v.target; h.unit = v.unit; h.why = v.why;
+    if (!v.goal) h.goal = null;
+    else if (!h.goal || h.goal.days !== v.goal) h.goal = { days: v.goal, reachedAt: null };
+    checkGoal(h, true);
+    save(); render(); backToDetail();
+  }
+  function backToDetail() {
+    show({ type: 'detail', id: state.id, y: state.y, m: state.m });
+  }
+
+  // ----- Карточка привычки -----
+  function openDetail(id) {
+    var now = new Date();
+    show({ type: 'detail', id: id, y: now.getFullYear(), m: now.getMonth() });
+  }
+  function renderDetail() {
+    var h = byId(state.id);
+    if (!h) { closeSheet(); return; }
+    var y = state.y, m = state.m, t = today0(), tk = keyOf(t);
+    var prefix = y + '-' + pad(m + 1), monthCount = 0, total = 0;
+    Object.keys(h.done).forEach(function (k) { if (isDone(h, k)) { total++; if (k.indexOf(prefix) === 0) monthCount++; } });
+    var offset = wd(new Date(y, m, 1)), dim = new Date(y, m + 1, 0).getDate();
+    var isCurrent = y === t.getFullYear() && m === t.getMonth();
+    var cells = '', i, d;
+    for (i = 0; i < offset; i++) cells += '<div class="cell-gap"></div>';
+    for (d = 1; d <= dim; d++) {
+      var dt = new Date(y, m, d), k = keyOf(dt);
+      var on = isDone(h, k), part = isQty(h) && !on && amount(h, k) > 0, rest = !!h.rest[k];
+      var off = h.sched.type === 'days' && !rest && !isSched(h, dt, k);
+      cells += '<button class="cell' + (on ? ' cell-on' : '') + (part ? ' cell-part' : '') + (rest ? ' cell-rest' : '') +
+        (off ? ' cell-off' : '') + (k === tk ? ' cell-today' : '') + (h.notes[k] ? ' has-note' : '') +
+        '" data-cday="' + k + '"' + (k > tk ? ' disabled' : '') + '>' + d + '</button>';
+    }
+    var dows = DOW.map(function (x) { return '<div class="grid-dow">' + x + '</div>'; }).join('');
+    var noteKeys = Object.keys(h.notes).sort().reverse().slice(0, 6);
+    var notesHtml = noteKeys.length ? '<span class="label">Заметки</span><ul class="notes">' + noteKeys.map(function (k) {
+      return '<li><button class="note-item" data-dayopen="' + k + '"><span class="note-date">' +
+        longDate(parseKey(k), { day: 'numeric', month: 'long', weekday: 'short' }) + '</span><span class="note-text">' + esc(h.notes[k]) + '</span></button></li>';
+    }).join('') + '</ul>' : '';
+    sheet.setAttribute('aria-label', h.name);
+    sheet.setAttribute('style', style(col(h)));
+    sheet.innerHTML =
+      '<div class="sheet-head"><h2 class="sheet-title sheet-title-flush">' + esc(h.name) + '</h2><button class="edit" data-act="edit">Изменить</button></div>' +
+      (h.why ? '<p class="quote">«' + esc(h.why) + '»</p>' : '') +
+      '<div class="stats">' +
+      '<div><div class="stat-num">' + streak(h) + '</div><div class="stat-cap">серия, ' + unitOf(h) + '</div></div>' +
+      '<div><div class="stat-num">' + bestStreak(h) + '</div><div class="stat-cap">лучшая, ' + unitOf(h) + '</div></div>' +
+      '<div><div class="stat-num">' + monthCount + '</div><div class="stat-cap">в этом месяце</div></div>' +
+      '<div><div class="stat-num">' + total + '</div><div class="stat-cap">всего</div></div>' +
+      '</div>' +
+      '<p class="hint">' + esc(describe(h)) + '</p>' +
+      goalHtml(h) + awardsHtml(h) +
+      '<div class="month-bar">' +
+      '<button class="nav" data-nav="-1" aria-label="Предыдущий месяц">‹</button>' +
+      '<span class="month-name">' + cap(longDate(new Date(y, m, 1), { month: 'long', year: 'numeric' }).replace(' г.', '')) + '</span>' +
+      '<button class="nav" data-nav="1" aria-label="Следующий месяц"' + (isCurrent ? ' disabled' : '') + '>›</button>' +
+      '</div>' +
+      '<div class="grid">' + dows + cells + '</div>' +
+      '<p class="hint">Удерживайте день, чтобы добавить заметку или отметить отдых.</p>' +
+      notesHtml +
+      '<span class="label">Весь год</span>' + habitHeat(h) +
+      '<button class="secondary" data-act="archive">В архив</button>' +
+      '<button class="danger" data-act="delete">Удалить привычку</button>';
+  }
+
+  // ----- День: количество, отдых, заметка -----
+  function qtyChips(t) {
+    var base = Math.pow(10, Math.floor(Math.log10(t)));
+    return base >= 10 ? [base / 10, base] : [base];
+  }
+  function openDay(id, key, ret) {
+    var h = byId(id);
+    if (!h || key > keyOf(today0())) return;
+    var a = amount(h, key);
+    show({ type: 'day', id: id, key: key, ret: ret || null,
+      st: h.rest[key] ? 'rest' : (!isQty(h) && isDone(h, key)) ? 'done' : 'none',
+      amount: a > 0 ? num(a) : '', note: h.notes[key] || '' });
+  }
+  function readDay() {
+    var a = $('#amount'), n = $('#note');
+    if (a && typeof a.value === 'string') state.amount = a.value;
+    if (n && typeof n.value === 'string') state.note = n.value;
+  }
+  function renderDay() {
+    var h = byId(state.id);
+    if (!h) { closeSheet(); return; }
+    var qty = isQty(h);
+    var opts = qty ? [['none', 'Обычный день'], ['rest', 'День отдыха']]
+      : [['none', 'Не отмечено'], ['done', 'Выполнено'], ['rest', 'День отдыха']];
+    var amountHtml = '';
+    if (qty && state.st !== 'rest') {
+      amountHtml = '<span class="label">Сколько' + (h.unit ? ', ' + esc(h.unit) : '') + '</span>' +
+        '<input class="field" id="amount" type="number" inputmode="decimal" min="0" step="any" placeholder="0" aria-label="Количество" value="' + esc(state.amount) + '">' +
+        '<div class="chips-auto">' + qtyChips(h.target).map(function (n) {
+          return '<button class="chip" data-add="' + n + '">+' + fmt(n) + '</button>';
+        }).join('') + '<button class="chip" data-amt="target">Цель: ' + fmt(h.target) + '</button><button class="chip" data-amt="0">Сброс</button></div>';
+    }
+    sheet.setAttribute('aria-label', h.name);
+    sheet.innerHTML = '<h2 class="sheet-title">' + esc(h.name) + '</h2>' +
+      '<p class="hint" style="margin:-8px 0 16px">' + cap(longDate(parseKey(state.key), { weekday: 'long', day: 'numeric', month: 'long' })) + '</p>' +
+      segHtml('data-st', opts, state.st, 'Статус дня') + amountHtml +
+      '<span class="label">Заметка</span>' +
+      '<textarea class="field area" id="note" rows="3" maxlength="300" placeholder="Что помогло или помешало?" aria-label="Заметка к дню">' + esc(state.note) + '</textarea>' +
+      '<button class="primary" data-act="saveday">Сохранить</button>' +
+      '<button class="secondary" data-act="cancelday">Отмена</button>';
+  }
+  function leaveDay() {
+    if (state.ret) show({ type: 'detail', id: state.id, y: state.ret.y, m: state.ret.m });
+    else closeSheet();
+  }
+  function saveDay() {
+    readDay();
+    var h = byId(state.id), k = state.key;
+    if (!h) return;
+    touch(h, k);
+    if (state.st === 'rest') { h.rest[k] = 1; delete h.done[k]; }
+    else {
+      delete h.rest[k];
+      if (isQty(h)) {
+        var a = parseFloat(String(state.amount).replace(',', '.'));
+        if (a > 0 && isFinite(a)) h.done[k] = Math.min(10000000, Math.round(a * 100) / 100); else delete h.done[k];
+      } else if (state.st === 'done') h.done[k] = 1;
+      else delete h.done[k];
+    }
+    var note = state.note.trim();
+    if (note) h.notes[k] = note.slice(0, 300); else delete h.notes[k];
+    if (isDone(h, k)) checkGoal(h);
+    save(); render(); leaveDay();
+  }
+
+  // ---------- Статистика ----------
+  function periodStats(h, from, to) {
+    var exp = 0, done = 0, span = 0, d, k;
+    if (h.sched.type === 'weekly') {
+      for (d = from; d <= to; d = addDays(d, 1)) {
+        k = keyOf(d);
+        if (k < h.created) continue;
+        span++;
+        if (!h.rest[k] && isDone(h, k)) done++;
+      }
+      if (!span) return { exp: 0, done: 0 };
+      exp = Math.max(1, Math.round(h.sched.n * span / 7));
+      return { exp: exp, done: Math.min(done, exp) };
+    }
+    for (d = from; d <= to; d = addDays(d, 1)) {
+      k = keyOf(d);
+      if (h.rest[k] || !isSched(h, d, k)) continue;
+      exp++;
+      if (isDone(h, k)) done++;
+    }
+    return { exp: exp, done: done };
+  }
+  function pct(done, exp) { return exp ? Math.round(100 * done / exp) : null; }
+  function weekPeriod(off) {
+    var t = today0(), mon = addDays(mondayOf(t), off * 7), end = addDays(mon, 6);
+    if (end > t) end = t;
+    return { from: mon, to: end };
+  }
+  function groupStats(kind, days) {
+    var t = today0(), from = addDays(t, -(days - 1)), exp = 0, done = 0;
+    active().forEach(function (h) {
+      if (h.kind !== kind) return;
+      var s = periodStats(h, from, t);
+      exp += s.exp; done += s.done;
+    });
+    return pct(done, exp);
+  }
+  function weekdayRates() {
+    var t = today0(), exp = [0, 0, 0, 0, 0, 0, 0], done = [0, 0, 0, 0, 0, 0, 0];
+    active().forEach(function (h) {
+      if (h.sched.type === 'weekly') return;
+      for (var i = 0; i < 90; i++) {
+        var d = addDays(t, -i), k = keyOf(d);
+        if (k < h.created || h.rest[k] || !isSched(h, d, k)) continue;
+        var dn = isDone(h, k);
+        if (i === 0 && !dn) continue;
+        exp[wd(d)]++; if (dn) done[wd(d)]++;
+      }
+    });
+    var best = -1, worst = -1, bi = -1, wi = -1;
+    for (var w = 0; w < 7; w++) {
+      if (exp[w] < 4) continue;
+      var r = done[w] / exp[w];
+      if (best < 0 || r > best) { best = r; bi = w; }
+      if (worst < 0 || r < worst) { worst = r; wi = w; }
+    }
+    if (bi < 0 || bi === wi || best === worst) return null;
+    return { best: bi, bestPct: Math.round(best * 100), worst: wi, worstPct: Math.round(worst * 100) };
+  }
+  function openStats() { show({ type: 'stats', week: 0 }); }
+  function renderStats() {
+    var list = active(), off = state.week;
+    var per = weekPeriod(off), prev = weekPeriod(off - 1);
+    var rows = [], tot = { exp: 0, done: 0 }, ptot = { exp: 0, done: 0 };
+    list.forEach(function (h) {
+      var s = periodStats(h, per.from, per.to), p = periodStats(h, prev.from, prev.to);
+      tot.exp += s.exp; tot.done += s.done; ptot.exp += p.exp; ptot.done += p.done;
+      if (s.exp) rows.push({ h: h, exp: s.exp, done: s.done, pct: s.done / s.exp });
+    });
+    rows.sort(function (a, b) { return b.pct - a.pct; });
+    var html = '<h2 class="sheet-title">Статистика</h2>' +
+      '<span class="label" style="margin-top:0">Итоги недели</span>' +
+      segHtml('data-sw', [['0', 'Эта неделя'], ['-1', 'Прошлая']], String(off), 'Неделя');
+    if (!tot.exp) {
+      html += '<p class="hint">За эту неделю пока нет данных. Отмечайте привычки, и здесь появится сводка.</p>';
+    } else {
+      var p = pct(tot.done, tot.exp), pp = pct(ptot.done, ptot.exp), facts = '';
+      html += '<div class="big">' + p + '%</div><p class="hint" style="margin-top:0">' + tot.done + ' из ' + tot.exp + ' отметок по плану</p><div class="facts">';
+      if (pp !== null) {
+        var diff = p - pp;
+        facts += '<p>' + (diff > 0 ? 'На ' + diff + ' п.п. лучше, чем неделей раньше (' + pp + '%).' :
+          diff < 0 ? 'На ' + (-diff) + ' п.п. хуже, чем неделей раньше (' + pp + '%).' : 'Так же, как неделей раньше (' + pp + '%).') + '</p>';
+      }
+      if (rows.length > 1 && rows[0].pct > rows[rows.length - 1].pct) {
+        var b = rows[0], w = rows[rows.length - 1];
+        facts += '<p>Лучше всего: ' + esc(b.h.name) + ' (' + Math.round(b.pct * 100) + '%).</p>' +
+          '<p>Сложнее всего: ' + esc(w.h.name) + ' (' + Math.round(w.pct * 100) + '%).</p>';
+      }
+      html += facts + '</div>' + rows.map(function (r) {
+        return '<div class="srow" style="' + style(col(r.h)) + '"><div class="srow-top"><span>' + esc(r.h.name) + '</span><span>' + r.done + ' из ' + r.exp + '</span></div>' +
+          '<div class="srow-bar"><i style="width:' + Math.round(r.pct * 100) + '%"></i></div></div>';
+      }).join('');
+    }
+
+    var g = function (kind, days) { var v = groupStats(kind, days); return v === null ? '—' : v + '%'; };
+    var hasGood = list.some(function (h) { return h.kind === 'good'; }), hasQuit = list.some(function (h) { return h.kind === 'quit'; });
+    if (hasGood || hasQuit) {
+      html += '<span class="label">Выполнение</span><div class="gstats"><span></span><b>7 дней</b><b>30 дней</b>' +
+        (hasGood ? '<span>Полезные</span><span>' + g('good', 7) + '</span><span>' + g('good', 30) + '</span>' : '') +
+        (hasQuit ? '<span>Отказаться</span><span>' + g('quit', 7) + '</span><span>' + g('quit', 30) + '</span>' : '') + '</div>';
+    }
+
+    if (list.length) {
+      var bestH = null, bestV = 0, curH = null, curV = 0;
+      list.forEach(function (h) {
+        var b2 = bestStreak(h), c2 = streak(h);
+        if (b2 > bestV) { bestV = b2; bestH = h; }
+        if (c2 > curV) { curV = c2; curH = h; }
+      });
+      var wr = weekdayRates(), recs = '';
+      if (bestH) recs += '<p>Лучшая серия за всё время: ' + bestV + ' ' + unitOf(bestH) + ', ' + esc(bestH.name) + '.</p>';
+      if (curH) recs += '<p>Самая длинная серия сейчас: ' + curV + ' ' + unitOf(curH) + ', ' + esc(curH.name) + '.</p>';
+      if (wr) recs += '<p>Удачнее всего получается ' + DOW_ON[wr.best] + ' (' + wr.bestPct + '%), сложнее всего ' + DOW_ON[wr.worst] + ' (' + wr.worstPct + '%). Данные за 90 дней.</p>';
+      if (recs) html += '<span class="label">Рекорды</span><div class="facts">' + recs + '</div>';
+      html += '<span class="label">Активность за год</span>' + globalHeat();
+    }
+
+    var awards = [];
+    habits.forEach(function (h) {
+      h.awards.forEach(function (a) { awards.push({ name: h.name, color: col(h), days: a.days, unit: unitOf(h), date: a.date }); });
+    });
+    awards.sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    html += '<span class="label">Награды</span>' + (awards.length ? '<ul class="awards-list">' + awards.map(function (a) {
+      return '<li style="' + style(a.color) + '"><span class="trophy">🏆</span><span><b>' + esc(a.name) + '</b><br><span class="award-sub">' +
+        a.days + ' ' + a.unit + ' подряд, ' + longDate(parseKey(a.date), { day: 'numeric', month: 'long', year: 'numeric' }) + '</span></span></li>';
+    }).join('') + '</ul>' : '<p class="hint">Наград пока нет. Поставьте цель: тап по названию привычки, затем «Изменить» и «Цель».</p>');
+    sheet.setAttribute('aria-label', 'Статистика');
+    sheet.innerHTML = html;
+  }
+
+  // ---------- Тепловая карта ----------
   function heatmap(levelFn, styleStr) {
-    var now = new Date(), tk = keyOf(now);
-    var shift = (now.getDay() + 6) % 7;
-    var start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - shift - 52 * 7);
+    var now = today0(), tk = keyOf(now);
+    var start = addDays(mondayOf(now), -52 * 7);
     var cells = '', months = '', lastM = -1;
     for (var w = 0; w < 53; w++) {
-      var mon = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7);
+      var mon = addDays(start, w * 7);
       if (mon.getMonth() !== lastM) {
         var skip = (w === 0 && mon.getDate() > 21);
         lastM = mon.getMonth();
-        if (!skip) months += '<span style="grid-column:' + (w + 1) + '">' + mon.toLocaleDateString('ru', { month: 'short' }).replace('.', '') + '</span>';
+        if (!skip) months += '<span style="grid-column:' + (w + 1) + '">' + longDate(mon, { month: 'short' }).replace('.', '') + '</span>';
       }
       for (var d = 0; d < 7; d++) {
-        var dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d);
-        var k = keyOf(dt);
-        if (dt > now && k !== tk) { cells += '<i class="hc hc-gap"></i>'; continue; }
-        var r = levelFn(k);
-        cells += '<i class="hc' + (r.o ? '' : ' hc-0') + '"' + (r.o ? ' style="--o:' + r.o + '"' : '') +
-          ' data-hc="' + esc(dt.toLocaleDateString('ru', { day: 'numeric', month: 'long' }) + ': ' + r.cap) + '"></i>';
+        var dt = addDays(start, w * 7 + d), k = keyOf(dt);
+        if (k > tk) { cells += '<i class="hc hc-gap"></i>'; continue; }
+        var r = levelFn(k, dt);
+        cells += '<i class="hc' + (r.o ? '' : ' hc-0') + (r.off ? ' hc-off' : '') + '"' + (r.o ? ' style="--o:' + r.o + '"' : '') +
+          ' data-hc="' + esc(longDate(dt, { day: 'numeric', month: 'long' }) + ': ' + r.cap) + '"></i>';
       }
     }
     return '<div class="heat-wrap" role="img" aria-label="Активность за год"' + (styleStr ? ' style="' + styleStr + '"' : '') + '>' +
@@ -564,54 +1106,77 @@
   }
   function habitHeat(h) {
     var yes = h.kind === 'quit' ? 'удержались' : 'выполнено';
-    return heatmap(function (k) { return h.done[k] ? { o: 1, cap: yes } : { o: 0, cap: 'нет отметки' }; });
+    return heatmap(function (k, d) {
+      if (h.rest[k]) return { o: .25, cap: 'день отдыха' };
+      if (isDone(h, k)) return { o: 1, cap: yes };
+      var a = amount(h, k);
+      if (isQty(h) && a > 0) return { o: .5, cap: fmt(a) + ' из ' + fmt(h.target) + (h.unit ? ' ' + h.unit : '') };
+      var off = h.sched.type === 'days' && k >= h.created && !isSched(h, d, k);
+      return { o: 0, cap: off ? 'не по плану' : 'нет отметки', off: off };
+    });
   }
   function globalHeat() {
-    var n = habits.length;
-    return heatmap(function (k) {
-      var c = habits.filter(function (h) { return h.done[k]; }).length;
-      var f = n ? c / n : 0;
-      return { o: !c ? 0 : f < .34 ? .3 : f < .67 ? .55 : f < 1 ? .8 : 1, cap: c + ' из ' + n };
+    var list = active();
+    return heatmap(function (k, d) {
+      var exp = 0, done = 0;
+      list.forEach(function (h) {
+        if (h.rest[k]) return;
+        var dn = isDone(h, k);
+        if (h.sched.type === 'weekly') { if (dn) { exp++; done++; } return; }
+        if (isSched(h, d, k)) { exp++; if (dn) done++; }
+      });
+      var f = exp ? done / exp : 0;
+      return { o: !done ? 0 : f < .34 ? .3 : f < .67 ? .55 : f < 1 ? .8 : 1, cap: exp ? done + ' из ' + exp : 'ничего не запланировано' };
     }, '--c:#7A5CFA');
   }
 
-  // ---------- Экран «Награды и данные» ----------
-  function openMore() {
-    state = { type: 'more' };
-    renderSheet(); openSheet();
+  // ---------- Порядок, архив, копия данных ----------
+  function move(id, dir) {
+    var i = habits.findIndex(function (x) { return x.id === id; });
+    if (i < 0) return;
+    var kind = habits[i].kind;
+    for (var j = i + dir; j >= 0 && j < habits.length; j += dir) {
+      if (!habits[j].archived && habits[j].kind === kind) {
+        var t = habits[i]; habits[i] = habits[j]; habits[j] = t;
+        break;
+      }
+    }
+    save(); render(); keepScroll();
   }
   function renderMore() {
-    sheet.setAttribute('aria-label', 'Награды и данные');
-    sheet.removeAttribute('style');
-    var awards = [];
-    habits.forEach(function (h) {
-      (h.awards || []).forEach(function (a) { awards.push({ name: h.name, color: col(h), days: a.days, date: a.date }); });
-    });
-    awards.sort(function (a, b) { return a.date < b.date ? 1 : -1; });
-    var awardsList = awards.length ? '<ul class="awards-list">' + awards.map(function (a) {
-      var p = a.date.split('-');
-      var when = new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' });
-      return '<li style="' + style(a.color) + '"><span class="trophy">🏆</span><span><b>' + esc(a.name) + '</b><br>' +
-        '<span class="award-sub">' + a.days + ' дн. подряд, ' + when + '</span></span></li>';
-    }).join('') + '</ul>' : '<p class="hint">Наград пока нет. Поставьте цель: тап по названию привычки, затем «Изменить» и «Цель».</p>';
+    sheet.setAttribute('aria-label', 'Порядок, архив и копия данных');
+    var list = active();
+    var order = [['good', 'Полезные'], ['quit', 'Отказаться']].map(function (g) {
+      var items = list.filter(function (h) { return h.kind === g[0]; });
+      if (!items.length) return '';
+      return '<p class="hint" style="margin:10px 0 4px">' + g[1] + '</p>' + items.map(function (h, i) {
+        return '<div class="order-row" style="' + style(col(h)) + '"><span class="dot"></span><span class="order-name">' + esc(h.name) + '</span>' +
+          '<button class="tiny" data-up="' + h.id + '" aria-label="Выше"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+          '<button class="tiny" data-down="' + h.id + '" aria-label="Ниже"' + (i === items.length - 1 ? ' disabled' : '') + '>↓</button></div>';
+      }).join('');
+    }).join('');
+    var arch = habits.filter(function (h) { return h.archived; });
+    var archHtml = arch.length ? arch.map(function (h) {
+      return '<div class="order-row" style="' + style(col(h)) + '"><span class="dot"></span><span class="order-name">' + esc(h.name) + '</span>' +
+        '<button class="tiny" data-unarch="' + h.id + '">Вернуть</button>' +
+        '<button class="tiny" data-deli="' + h.id + '" aria-label="Удалить навсегда">✕</button></div>';
+    }).join('') : '<p class="hint">Архив пуст. В архив можно отправить привычку из её карточки: история сохранится.</p>';
     sheet.innerHTML =
-      '<h2 class="sheet-title">Награды и данные</h2>' +
-      '<span class="label">Активность за год</span>' +
-      (habits.length ? globalHeat() : '<p class="hint">Добавьте привычку, и здесь появится карта ваших дней.</p>') +
-      '<span class="label">Награды</span>' + awardsList +
+      '<h2 class="sheet-title">Порядок и данные</h2>' +
+      '<span class="label" style="margin-top:0">Порядок привычек</span>' +
+      (order || '<p class="hint">Пока нет привычек.</p>') +
+      '<span class="label">Архив</span>' + archHtml +
       '<span class="label">Копия данных</span>' +
       '<p class="hint" style="margin:0 0 10px">Отметки хранятся только в этом телефоне. Сохраните копию, чтобы не потерять их.</p>' +
       '<div class="btn-row"><button class="outline" data-act="export">Сохранить файл</button><button class="outline" data-act="copy">Скопировать</button></div>' +
       '<span class="label">Восстановить из копии</span>' +
       '<label class="outline file-btn" for="file">Выбрать файл</label>' +
       '<input type="file" id="file" class="visually-hidden" accept="application/json,.json,text/plain">' +
-      '<textarea class="field area" id="paste" rows="3" placeholder="Или вставьте сюда скопированные данные" aria-label="Данные для восстановления"></textarea>' +
+      '<textarea class="field area paste" id="paste" rows="3" placeholder="Или вставьте сюда скопированные данные" aria-label="Данные для восстановления"></textarea>' +
       '<button class="outline" data-act="import-text">Восстановить из текста</button>';
   }
-
-  // ---------- Резервная копия ----------
   function backupJson() {
-    return JSON.stringify({ app: 'habit-tracker', version: 2, exportedAt: new Date().toISOString(), habits: habits }, null, 1);
+    return JSON.stringify({ app: 'habit-tracker', version: 3, exportedAt: new Date().toISOString(), habits: habits }, null, 1);
   }
   function exportFile() {
     var text = backupJson();
@@ -645,38 +1210,13 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
     else fallback();
   }
-  function sanitize(h, seen) {
-    var id = String(h.id || '').replace(/[^\w-]/g, '');
-    if (!id || seen[id]) id = 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    seen[id] = 1;
-    var done = {};
-    if (h.done && typeof h.done === 'object') {
-      Object.keys(h.done).forEach(function (k) { if (DATE_RE.test(k) && h.done[k]) done[k] = 1; });
-    }
-    var goal = null;
-    if (h.goal && +h.goal.days > 0) {
-      goal = { days: Math.min(3650, Math.round(+h.goal.days)), reachedAt: DATE_RE.test(h.goal.reachedAt) ? h.goal.reachedAt : null };
-    }
-    var awards = Array.isArray(h.awards) ? h.awards.filter(function (a) {
-      return a && +a.days > 0 && DATE_RE.test(a.date);
-    }).map(function (a) { return { days: Math.round(+a.days), date: a.date }; }) : [];
-    return {
-      id: id,
-      name: String(h.name).trim().slice(0, 40),
-      color: (Math.abs(parseInt(h.color, 10)) || 0) % PALETTE.length,
-      kind: h.kind === 'quit' ? 'quit' : 'good',
-      goal: goal, awards: awards, done: done
-    };
-  }
   function importText(text) {
     var data;
     try { data = JSON.parse(String(text).trim()); }
     catch (e) { return toast('Не удалось прочитать данные. Проверьте, что вставлен весь текст.'); }
     var list = Array.isArray(data) ? data : (data && data.habits);
     if (!Array.isArray(list)) return toast('Это не копия приложения «Привычки».');
-    var seen = {};
-    var clean = list.filter(function (h) { return h && typeof h.name === 'string' && h.name.trim(); })
-      .map(function (h) { return sanitize(h, seen); });
+    var clean = cleanList(list);
     if (!clean.length) return toast('В этой копии нет привычек.');
     if (!confirm('Заменить текущие привычки (' + habits.length + ') на данные из копии (' + clean.length + ')?')) return;
     habits = clean; weekOffset = 0;
@@ -685,31 +1225,108 @@
   }
 
   // ---------- События ----------
+  var lp = { timer: null, x: 0, y: 0, fired: false };
+  var lastLong = 0;
+  function cancelLong() {
+    clearTimeout(lp.timer);
+    lp.timer = null;
+    if (lp.fired) { lastLong = Date.now(); lp.fired = false; }
+  }
+  document.addEventListener('pointerdown', function (e) {
+    var t = e.target.closest && e.target.closest('[data-day],[data-cday]');
+    if (!t || t.disabled) return;
+    lp.x = e.clientX; lp.y = e.clientY; lp.fired = false;
+    clearTimeout(lp.timer);
+    lp.timer = setTimeout(function () {
+      lp.fired = true; lastLong = Date.now();
+      var ds = t.dataset;
+      if (ds.toggle) openDay(ds.toggle, ds.day, null);
+      else if (ds.cday && state && state.type === 'detail') openDay(state.id, ds.cday, { y: state.y, m: state.m });
+    }, 480);
+  });
+  document.addEventListener('pointerup', cancelLong);
+  document.addEventListener('pointercancel', cancelLong);
+  document.addEventListener('pointermove', function (e) {
+    if (lp.timer && (Math.abs(e.clientX - lp.x) > 10 || Math.abs(e.clientY - lp.y) > 10)) { clearTimeout(lp.timer); lp.timer = null; }
+  });
+  document.addEventListener('contextmenu', function (e) {
+    if (e.target.closest && e.target.closest('[data-day],[data-cday]')) e.preventDefault();
+  });
+
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-toggle],[data-open],[data-cday],[data-swatch],[data-nav],[data-week],[data-kind],[data-goal],[data-hc],[data-act]');
+    if (Date.now() - lastLong < 700) return;
+    var t = e.target.closest(SEL);
     if (!t) return;
-    var ds = t.dataset;
+    var ds = t.dataset, h;
+
     if (ds.week !== undefined) {
       weekOffset = ds.week === '0' ? 0 : Math.min(0, weekOffset + (+ds.week));
       return render();
     }
-    if (ds.kind) {
-      state.kind = ds.kind;
-      document.querySelectorAll('.seg-btn').forEach(function (b) {
-        var on = b.dataset.kind === state.kind;
-        b.classList.toggle('seg-sel', on);
-        b.setAttribute('aria-checked', on);
-      });
-      $('#hint').textContent = HINTS[state.kind];
+    if (ds.toggle) {
+      h = byId(ds.toggle);
+      if (h && isQty(h)) return openDay(ds.toggle, ds.day, null);
+      return toggle(ds.toggle, ds.day);
+    }
+    if (ds.open) return openDetail(ds.open);
+    if (ds.cday) {
+      h = byId(state.id);
+      if (h && isQty(h)) return openDay(state.id, ds.cday, { y: state.y, m: state.m });
+      return toggle(state.id, ds.cday);
+    }
+    if (ds.dayopen) return openDay(state.id, ds.dayopen, { y: state.y, m: state.m });
+    if (ds.nav) {
+      var d = new Date(state.y, state.m + (+ds.nav), 1);
+      state.y = d.getFullYear(); state.m = d.getMonth();
+      return renderSheet();
+    }
+
+    // форма
+    if (ds.kind) { readForm(); state.kind = ds.kind; if (ds.kind === 'quit') state.qty = false; return refreshForm(); }
+    if (ds.qty !== undefined) { readForm(); state.qty = ds.qty === '1'; return refreshForm(); }
+    if (ds.sched) {
+      readForm(); state.sched = ds.sched;
+      if (baseGoals().indexOf(state.goal) < 0) state.goal = 0;
+      return refreshForm();
+    }
+    if (ds.wd !== undefined) {
+      readForm();
+      var i = state.days.indexOf(+ds.wd);
+      if (i >= 0) state.days.splice(i, 1); else state.days.push(+ds.wd);
+      return refreshForm();
+    }
+    if (ds.n !== undefined) { readForm(); state.n = +ds.n; return refreshForm(); }
+    if (ds.swatch !== undefined) { readForm(); state.color = +ds.swatch; return refreshForm(); }
+    if (ds.goal !== undefined) { readForm(); state.goal = +ds.goal; return refreshForm(); }
+
+    // день
+    if (ds.st) { readDay(); state.st = ds.st; return keepScroll(); }
+    if (ds.add) {
+      var a = $('#amount');
+      if (a) a.value = num((parseFloat(String(a.value).replace(',', '.')) || 0) + (+ds.add));
       return;
     }
-    if (ds.goal !== undefined) {
-      state.goal = +ds.goal;
-      document.querySelectorAll('.chip').forEach(function (b) {
-        var on = +b.dataset.goal === state.goal;
-        b.classList.toggle('chip-sel', on);
-        b.setAttribute('aria-checked', on);
-      });
+    if (ds.amt) {
+      var a2 = $('#amount'), hh = byId(state.id);
+      if (a2 && hh) a2.value = ds.amt === 'target' ? num(hh.target) : '';
+      return;
+    }
+
+    // статистика, порядок, архив
+    if (ds.sw !== undefined) { state.week = +ds.sw; return keepScroll(); }
+    if (ds.up) return move(ds.up, -1);
+    if (ds.down) return move(ds.down, 1);
+    if (ds.unarch) {
+      h = byId(ds.unarch);
+      if (h) { h.archived = false; save(); render(); keepScroll(); toast('Привычка вернулась в список.'); }
+      return;
+    }
+    if (ds.deli) {
+      h = byId(ds.deli);
+      if (h && confirm('Удалить «' + h.name + '» навсегда вместе с историей?')) {
+        habits = habits.filter(function (x) { return x.id !== h.id; });
+        save(); render(); keepScroll();
+      }
       return;
     }
     if (ds.hc !== undefined) {
@@ -717,38 +1334,30 @@
       if (cp) cp.textContent = ds.hc;
       return;
     }
-    if (ds.toggle) return toggle(ds.toggle, ds.day);
-    if (ds.open) return openDetail(ds.open);
-    if (ds.cday) return toggle(state.id, ds.cday);
-    if (ds.swatch !== undefined) {
-      state.color = +ds.swatch;
-      document.querySelectorAll('.swatch').forEach(function (b, i) {
-        b.classList.toggle('swatch-sel', i === state.color);
-        b.setAttribute('aria-checked', i === state.color);
-      });
-      return;
-    }
-    if (ds.nav) {
-      var d = new Date(state.y, state.m + (+ds.nav), 1);
-      state.y = d.getFullYear(); state.m = d.getMonth();
-      return renderSheet();
-    }
+
     switch (ds.act) {
-      case 'new': return openAdd();
+      case 'new': return show(newFormState());
       case 'close': return closeSheet();
       case 'create': return create();
-      case 'edit': return startEdit();
       case 'save': return saveEdit();
       case 'back': return backToDetail();
-      case 'more': return openMore();
+      case 'edit': return startEdit();
+      case 'saveday': return saveDay();
+      case 'cancelday': return leaveDay();
+      case 'stats': return openStats();
+      case 'more': return show({ type: 'more' });
       case 'export': return exportFile();
       case 'copy': return copyData();
       case 'import-text':
         var pv = $('#paste');
         if (!pv || !pv.value.trim()) return toast('Сначала вставьте данные в поле.');
         return importText(pv.value);
+      case 'archive':
+        h = byId(state.id);
+        if (h) { h.archived = true; save(); closeSheet(); render(); toast('Привычка в архиве. Вернуть её можно в меню «⋯».'); }
+        return;
       case 'delete':
-        var h = habits.find(function (x) { return x.id === state.id; });
+        h = byId(state.id);
         if (h && confirm('Удалить «' + h.name + '» вместе с историей отметок?')) {
           habits = habits.filter(function (x) { return x.id !== h.id; });
           save(); closeSheet(); render();
@@ -766,7 +1375,10 @@
     e.target.value = '';
   });
   document.addEventListener('input', function (e) {
-    if (e.target.id === 'name') $('#create').disabled = !e.target.value.trim();
+    if (e.target.id === 'name') {
+      var c = $('#create');
+      if (c) c.disabled = !e.target.value.trim();
+    }
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.id === 'name') { if (state && state.type === 'edit') saveEdit(); else create(); }
@@ -790,6 +1402,7 @@
     document.head.appendChild(l);
   })();
 
+  habits = load();
   render();
 
   // Работа без интернета: sw.js лежит рядом с index.html
